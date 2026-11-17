@@ -4,7 +4,19 @@
    number: Open University course number (shown next to the title). */
 const CATALOG = {
   "courses": [
-    { "slug": "physics-fundamentals",  "lang": "he", "title": "יסודות הפיסיקה",          "number": "20125", "sims": [] },
+    {
+      "slug": "physics-fundamentals",
+      "lang": "he",
+      "title": "יסודות הפיסיקה",
+      "number": "20125",
+      "sims": [
+        {
+          "file": "free-fall.html",
+          "title": "נפילה חופשית",
+          "summary": "זריקה אנכית ונפילה חופשית: אנימציה עם צילום סטרובוסקופי, גרפים של גובה, מהירות ותאוצה, השוואה בין כדור הארץ, הירח וכוכבי לכת אחרים, והשפעת התנגדות האוויר ומהירות סופית."
+        }
+      ]
+    },
     { "slug": "thermodynamics",        "lang": "he", "title": "תרמודינמיקה לפיסיקאים",    "number": "20482", "sims": [] },
     { "slug": "statistical-mechanics", "lang": "he", "title": "פיסיקה סטטיסטית",          "number": "20314", "sims": [] },
     { "slug": "analytical-em",         "lang": "he", "title": "אלקטרומגנטיות אנליטית",    "number": "20589", "sims": [] },

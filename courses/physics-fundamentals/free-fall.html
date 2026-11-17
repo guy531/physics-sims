@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>נפילה חופשית</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<link rel="stylesheet" href="../../shared/sim.css">
+<style>
+:root{
+  --c-air:#2563eb; --c-vac:#e8700a; --c-v:#16a34a; --c-a:#dc2626; --c-ground:#dedad0;
+}
+:root[data-theme="dark"]{
+  --c-air:#60a5fa; --c-vac:#fb923c; --c-v:#4ade80; --c-a:#f87171; --c-ground:#2c3432;
+}
+canvas, input[type=range]{direction:ltr}      /* axes and sliders grow to the right, as in the graphs */
+.fall{display:grid;grid-template-columns:minmax(240px,0.7fr) 1.6fr;gap:14px}
+.fall > *{min-width:0}
+@media (max-width:1000px){.fall{grid-template-columns:1fr}}
+#cvScene{height:max(380px, calc(var(--avail)*0.98))}
+#cvY{height:max(160px, calc(var(--avail)*0.42))}
+#cvV{height:max(120px, calc(var(--avail)*0.29))}
+#cvA{height:max(110px, calc(var(--avail)*0.27))}
+.hint{font-size:14px;color:var(--c-muted);margin:-4px 0 6px}
+.unit{direction:ltr;unicode-bidi:isolate}
+</style>
+</head>
+<body>
+<header>
+  <div>
+  <h1>נפילה חופשית</h1>
+  <p>גוף נזרק מגובה \(h_0\) במהירות התחלתית \(v_0\) (חיובית כלפי מעלה) ונע תחת השפעת כוח הכובד בלבד, בתאוצה קבועה \(-g\).
+  אפשר להוסיף <b style="color:var(--c-air)">התנגדות אוויר</b> ולהשוות לתנועה <b style="color:var(--c-vac)">בלי אוויר</b>.
+  הציר \(y\) מכוון כלפי מעלה והקרקע ב־\(y=0\).</p>
+  </div>
+  <div class="hbtns">
+    <a class="navlink" href="../../index.html">כל הסימולציות</a>
+    <button id="notes"></button>
+    <button id="theme"></button>
+  </div>
+</header>
+
+<div class="layout">
+<aside>
+  <div class="card">
+    <h2>מצבים מוכנים</h2>
+    <div class="row presets">
+      <button data-p="drop">נפילה מ־20 מ'</button>
+      <button data-p="up">זריקה כלפי מעלה</button>
+      <button data-p="down">זריקה כלפי מטה</button>
+      <button data-p="moon">על הירח</button>
+      <button data-p="tennis">כדור טניס באוויר</button>
+      <button data-p="feather">נוצה ופטיש</button>
+      <button data-p="upair">זריקה למעלה עם אוויר</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>תנאי התחלה</h2>
+    <div class="ctl"><label><span>גובה התחלתי h<sub>0</sub></span> <b id="h0v"></b></label><input id="h0" type="range" min="0" max="100" step="0.5"></div>
+    <div class="ctl"><label><span>מהירות התחלתית v<sub>0</sub></span> <b id="v0v"></b></label><input id="v0" type="range" min="-30" max="30" step="0.5"></div>
+    <p class="hint">ערך חיובי: זריקה כלפי מעלה. ערך שלילי: זריקה כלפי מטה.</p>
+    <h2 style="margin-top:12px">כוח הכובד</h2>
+    <div class="ctl"><label><span>תאוצת הכובד g</span> <b id="gv"></b></label><input id="g" type="range" min="1" max="25" step="0.01"></div>
+    <div class="row presets">
+      <button data-g="9.8">כדור הארץ</button>
+      <button data-g="1.62">ירח</button>
+      <button data-g="3.71">מאדים</button>
+      <button data-g="24.8">צדק</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>התנגדות אוויר</h2>
+    <div class="checks"><label><input type="checkbox" id="drag">עם התנגדות אוויר</label></div>
+    <div class="ctl"><label><span>מהירות סופית v<sub>T</sub></span> <b id="vTv"></b></label><input id="vT" type="range" min="0" max="2.08" step="0.01"></div>
+    <div class="row presets">
+      <button data-vt="1">נוצה</button>
+      <button data-vt="9">טיפת גשם</button>
+      <button data-vt="25">כדור טניס</button>
+      <button data-vt="55">צנחן</button>
+      <button data-vt="110">כדור באולינג</button>
+    </div>
+    <div class="checks"><label><input type="checkbox" id="cmp"><span class="sw" style="background:var(--c-vac)"></span>השווה לתנועה בלי אוויר</label></div>
+  </div>
+
+  <div class="card">
+    <h2>הפעלה</h2>
+    <div class="row">
+      <button id="play" class="primary"></button>
+      <button id="restart">מההתחלה</button>
+    </div>
+    <div class="ctl"><label>זמן <b id="tv"></b></label><input id="scrub" type="range" min="0" max="1500" step="1"></div>
+    <div class="ctl"><label><span>מהירות הצגה (1× = זמן אמיתי)</span> <b id="spv"></b></label><input id="speed" type="range" min="0.1" max="3" step="0.05"></div>
+    <div class="checks">
+      <label><input type="checkbox" id="strobe">צילום סטרובוסקופי</label>
+      <label><input type="checkbox" id="showV"><span class="sw" style="background:var(--c-v)"></span>חץ מהירות</label>
+      <label><input type="checkbox" id="showA"><span class="sw" style="background:var(--c-a)"></span>חץ תאוצה</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>מדידות</h2>
+    <div class="readout">
+      <span>זמן t</span><span id="rt"></span>
+      <span>גובה y</span><span id="ry"></span>
+      <span>מהירות v</span><span id="rv"></span>
+      <span>תאוצה a</span><span id="ra"></span>
+      <span class="sep"></span><span class="sep" style="display:none"></span>
+      <span id="lTop">גובה מרבי</span><span id="rTop"></span>
+      <span id="lLand">זמן נחיתה</span><span id="rLand"></span>
+      <span id="lImp">מהירות פגיעה</span><span id="rImp"></span>
+      <span id="lLandV">בלי אוויר: זמן נחיתה</span><span id="rLandV"></span>
+      <span id="lImpV">בלי אוויר: מהירות פגיעה</span><span id="rImpV"></span>
+    </div>
+    <span id="badge" class="badge"></span>
+  </div>
+</aside>
+
+<main>
+  <div class="fall">
+    <div class="card">
+      <h2>התנועה</h2>
+      <canvas id="cvScene"></canvas>
+      <p class="cap">הסרגל מראה את הגובה במטרים. בצילום הסטרובוסקופי הכדור מצויר כל פרק זמן קבוע Δt: ככל שהמרווחים גדלים, הכדור מהיר יותר.
+      החץ הירוק הוא המהירות והאדום הוא התאוצה.</p>
+    </div>
+    <div class="card">
+      <h2>גרפים: גובה, מהירות ותאוצה כתלות בזמן</h2>
+      <canvas id="cvY"></canvas>
+      <canvas id="cvV"></canvas>
+      <canvas id="cvA"></canvas>
+      <p class="cap">בלי אוויר: הגובה הוא פרבולה, המהירות קו ישר ששיפועו \(-g\), והתאוצה קבועה. עם אוויר: המהירות מתקרבת למהירות הסופית והתאוצה שואפת לאפס.
+      הנקודות על גרף הגובה הן רגעי ההבזק של הצילום הסטרובוסקופי.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>תיאוריה</h2>
+    <div class="theory">
+      <div>
+        <h3>תנועה בתאוצה קבועה</h3>
+        בלי אוויר הכוח היחיד הוא כוח הכובד \(F=-mg\), ולכן התאוצה קבועה ואינה תלויה במסה: \(a=-g\).
+        $$v(t)=v_0-gt,\qquad y(t)=h_0+v_0t-\tfrac12gt^2 .$$
+        ומשוואה ללא זמן: \(v^2=v_0^2-2g\,(y-h_0)\).
+      </div>
+      <div>
+        <h3>זמן נחיתה ומהירות פגיעה</h3>
+        הגוף פוגע בקרקע (\(y=0\)) בזמן
+        $$t_{\text{נחיתה}}=\frac{v_0+\sqrt{v_0^2+2gh_0}}{g},\qquad |v_{\text{פגיעה}}|=\sqrt{v_0^2+2gh_0}.$$
+        בנפילה ממנוחה: \(t=\sqrt{2h_0/g}\). מהירות הפגיעה אינה תלויה בכיוון הזריקה, רק בגודל \(|v_0|\).
+      </div>
+      <div>
+        <h3>זריקה כלפי מעלה</h3>
+        בשיא המהירות מתאפסת, אבל התאוצה עדיין \(-g\).
+        $$t_{\text{שיא}}=\frac{v_0}{g},\qquad y_{\max}=h_0+\frac{v_0^2}{2g}.$$
+        בלי אוויר זמן העלייה לשיא שווה לזמן הירידה ממנו בחזרה לגובה \(h_0\).
+      </div>
+      <div>
+        <h3>יחס המרחקים של גלילאו</h3>
+        בנפילה ממנוחה המרחק שנפל עד הזמן \(t\) הוא \(\tfrac12gt^2\). במרווחי זמן שווים ועוקבים
+        הגוף עובר מרחקים ביחס \(1:3:5:7:\dots\) (המספרים האי־זוגיים).
+      </div>
+      <div>
+        <h3>התנגדות אוויר</h3>
+        במהירויות של חיי היומיום כוח הגרר גדל עם ריבוע המהירות, \(F_D=\tfrac12\rho C_DA\,v^2=kv^2\), ומכוון נגד התנועה:
+        $$m\dot v=-mg-k\,v|v|\quad\Longrightarrow\quad a=-g\Big(1+\frac{v|v|}{v_T^2}\Big),\qquad v_T=\sqrt{\frac{mg}{k}} .$$
+        כשהגוף יורד במהירות \(v_T\), הגרר שווה למשקל והתאוצה מתאפסת: זו <b>המהירות הסופית</b>.
+        בנפילה ממנוחה: \(v(t)=-v_T\tanh(gt/v_T)\).
+      </div>
+      <div>
+        <h3>למה נוצה נופלת לאט?</h3>
+        למסה ולצורה אין השפעה על התנועה בוואקום. עם אוויר, \(v_T\) תלוי ביחס בין המשקל לגרר:
+        לנוצה משקל קטן ושטח גדול, ולכן \(v_T\) שלה קטן. בירח אין אוויר, ושם נוצה ופטיש נופלים יחד
+        (כפי שהראה האסטרונאוט דייוויד סקוט ב־Apollo 15).
+      </div>
+    </div>
+    <h3>דברים לנסות</h3>
+    <ul class="try">
+      <li><b>נפילה מ־20 מ'</b>: מדדו את זמן הנחיתה והשוו ל־\(\sqrt{2h_0/g}\). הכפילו את הגובה: האם זמן הנפילה הוכפל? פי כמה הוא גדל?</li>
+      <li>הפעילו <b>צילום סטרובוסקופי</b> בנפילה ממנוחה ובדקו בעזרת הסרגל שהמרחקים בין הבזקים עוקבים מתייחסים כ־1:3:5:7.</li>
+      <li><b>זריקה כלפי מעלה</b>: עצרו בשיא. מה המהירות? מה התאוצה? (היעזרו בחיצים.)</li>
+      <li>זרקו מאותו גובה פעם כלפי מעלה ופעם כלפי מטה, באותו גודל מהירות. למי מהירות פגיעה גדולה יותר? מי מגיע ראשון?</li>
+      <li><b>על הירח</b> \(g\) קטן בערך פי 6. פי כמה ארוך זמן הנפילה מאותו גובה? ומהירות הפגיעה?</li>
+      <li><b>כדור טניס באוויר</b>: עקבו אחרי גרף המהירות. מתי היא כבר כמעט קבועה? מה קורה לתאוצה באותו זמן?</li>
+      <li><b>נוצה ופטיש</b>: עם אוויר הנוצה (כחול) מפגרת מאוד אחרי הפטיש (כתום). כבו את התנגדות האוויר: עכשיו שניהם נופלים יחד, כמו על הירח.</li>
+      <li><b>זריקה למעלה עם אוויר</b>: האם זמן העלייה שווה לזמן הירידה? האם הכדור חוזר לגובה ההתחלתי באותה מהירות שבה נזרק?</li>
+    </ul>
+  </div>
+</main>
+</div>
+
+<script src="../../shared/sim.js"></script>
+<script>
+"use strict";
+addColors('air','vac','v','a','ground');
+const NT = 1500;          // recorded time points per run
+const DT = 1e-3;          // integration step for the air-resistance run (s)
+
+const S = {h0:20, v0:0, g:9.8, drag:false, vT:25, cmp:true,
+           strobe:true, showV:true, showA:false, speed:0.5, playing:true, k:0};
+let M = null;             // the computed run
+
+/* ---------- physics ---------- */
+const accAir = v => -S.g*(1 + v*Math.abs(v)/(S.vT*S.vT));
+// one RK4 step of  y' = v,  v' = a(v)
+function rk4(y, v, h){
+  const k1v = accAir(v),            k1y = v;
+  const k2v = accAir(v + h/2*k1v),  k2y = v + h/2*k1v;
+  const k3v = accAir(v + h/2*k2v),  k3y = v + h/2*k2v;
+  const k4v = accAir(v + h*k3v),    k4y = v + h*k3v;
+  return [y + h/6*(k1y + 2*k2y + 2*k3y + k4y), v + h/6*(k1v + 2*k2v + 2*k3v + k4v)];
+}
+// landing time with air resistance (first pass, fixed small step, linear interpolation at the ground)
+function landAir(){
+  let y = S.h0, v = S.v0, t = 0;
+  if (y <= 0 && v <= 0) return 0;
+  while (t < 2000){
+    const [y1, v1] = rk4(y, v, DT);
+    if (y1 <= 0) return t + DT*y/(y - y1);
+    y = y1; v = v1; t += DT;
+  }
+  return t;
+}
+function build(){
+  const {h0, v0, g} = S;
+  const tVac = (v0 + Math.sqrt(v0*v0 + 2*g*h0))/g;
+  const tAir = S.drag ? landAir() : NaN;
+  const tEnd = Math.max(0.5, S.drag ? Math.max(tAir, S.cmp ? tVac : 0) : tVac);
+  const tmax = tEnd*1.04, H = tmax/NT;
+  const mk = () => new Float64Array(NT+1);
+  const yV = mk(), vV = mk(), aV = mk(), yA = mk(), vA = mk(), aA = mk();
+  for (let i=0;i<=NT;i++){
+    const t = i*H;
+    if (t <= tVac){ yV[i] = Math.max(0, h0 + v0*t - g*t*t/2); vV[i] = v0 - g*t; aV[i] = -g; }
+    else { yV[i] = vV[i] = aV[i] = NaN; }
+  }
+  let impAir = NaN;
+  if (S.drag){
+    let y = h0, v = v0, landed = !(h0 > 0 || v0 > 0);
+    const sub = Math.max(1, Math.ceil(H/DT)), h = H/sub;
+    yA[0] = y; vA[0] = v; aA[0] = accAir(v);
+    if (landed){ impAir = Math.abs(v0); }
+    for (let i=1;i<=NT;i++){
+      if (!landed){
+        for (let j=0;j<sub;j++){
+          const [y1, v1] = rk4(y, v, h);
+          if (y1 <= 0){ const f = y/(y - y1); impAir = Math.abs(v + f*(v1 - v)); landed = true; break; }
+          y = y1; v = v1;
+        }
+      }
+      if (landed){ yA[i] = vA[i] = aA[i] = NaN; }
+      else { yA[i] = y; vA[i] = v; aA[i] = accAir(v); }
+    }
+  }
+  // scales shared by the scene and the graphs
+  const fin = (arr, f, init) => { let m = init; for (const x of arr) if (isFinite(x)) m = f(m, x); return m; };
+  const showVac = !S.drag || S.cmp;
+  let Ymax = Math.max(h0, 1), vmin = 0, vmax = 0, amin = -g, amax = 0;
+  const sets = []; if (showVac) sets.push([yV, vV, aV]); if (S.drag) sets.push([yA, vA, aA]);
+  for (const [ys, vs, as] of sets){
+    Ymax = fin(ys, Math.max, Ymax); vmin = fin(vs, Math.min, vmin); vmax = fin(vs, Math.max, vmax);
+    amin = fin(as, Math.min, amin); amax = fin(as, Math.max, amax);
+  }
+  const topVac = v0 > 0 ? {t:v0/g, y:h0 + v0*v0/(2*g)} : null;
+  let topAir = null;
+  if (S.drag && v0 > 0){ let m = -1, im = 0; for (let i=0;i<=NT;i++) if (yA[i] > m){ m = yA[i]; im = i; } topAir = {t:im*H, y:m}; }
+  M = {tmax, H, tVac, tAir, yV, vV, aV, yA, vA, aA, impVac:Math.sqrt(v0*v0 + 2*g*h0), impAir, topVac, topAir,
+       Ymax:Ymax*1.08, vmin, vmax, amin, amax, showVac};
+  // strobe interval: a round number giving about 8-14 flashes before landing
+  const tl = S.drag ? tAir : tVac, steps = [0.02,0.05,0.1,0.2,0.25,0.5,1,2,5,10,20];
+  M.flash = steps.find(s => tl/s <= 14) || 20;
+  PB.PERIOD = tmax;      // speed 1 = real time
+}
+let buildTimer = null;
+function rebuild(){ clearTimeout(buildTimer); buildTimer = setTimeout(() => { build(); S.k = Math.min(S.k, NT); }, 60); }
+
+// state of a body at index k; after landing it rests on the ground
+function state(kind, k){
+  const y = kind === 'air' ? M.yA[k] : M.yV[k];
+  if (!isFinite(y)) return {y:0, v:0, a:0, landed:true};
+  return kind === 'air' ? {y, v:M.vA[k], a:M.aA[k], landed:false} : {y, v:M.vV[k], a:M.aV[k], landed:false};
+}
+const mainKind = () => S.drag ? 'air' : 'vac';
+const tOf = i => i*M.H;
+
+/* ---------- drawing ---------- */
+function arrow(ctx, x, y0, len, color, label){
+  if (Math.abs(len) < 4) return;
+  const y1 = y0 - len, dir = Math.sign(len);
+  ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1 + dir*9); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x-6, y1 + dir*11); ctx.lineTo(x+6, y1 + dir*11); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  rich(ctx, label, x + 9, (y0 + y1)/2, 'left', FS+1, color);
+}
+
+function drawScene(k){
+  const {ctx, w, h} = setup($('cvScene'));
+  const T = 26, B = h - 46, Y = y => B - y/M.Ymax*(B - T);
+  // ground
+  ctx.fillStyle = C.ground; ctx.fillRect(0, B, w, h - B);
+  ctx.strokeStyle = C.fg; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, B); ctx.lineTo(w, B); ctx.stroke();
+  // ruler
+  const xr = 50, yt = niceTicks(0, M.Ymax, Math.max(3, Math.floor((B - T)/45)));
+  ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xr, T); ctx.lineTo(xr, B); ctx.stroke();
+  ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const v of yt.ticks){
+    ctx.beginPath(); ctx.moveTo(xr-5, Y(v)); ctx.lineTo(xr, Y(v)); ctx.stroke();
+    ctx.fillText(fmt(v, yt.step), xr - 8, Y(v));
+    ctx.save(); ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(xr, Y(v)); ctx.lineTo(w - 6, Y(v)); ctx.stroke(); ctx.restore();
+  }
+  ctx.textAlign = 'center'; ctx.fillText('y (m)', xr - 14, T - 14);
+  // initial height and peak
+  const dashH = (y, parts, color) => {
+    ctx.save(); ctx.strokeStyle = color; ctx.setLineDash([5,4]); ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(xr, Y(y)); ctx.lineTo(w - 6, Y(y)); ctx.stroke(); ctx.restore();
+    rich(ctx, parts, w - 8, Y(y) - 9, 'right', FS, color);
+  };
+  dashH(S.h0, [['h'],['0','sub']], C.muted);
+  const top = S.drag ? M.topAir : M.topVac;
+  if (top && top.y - S.h0 > 0.04*M.Ymax) dashH(top.y, [['y'],['max','sub']], C.muted);
+  // columns
+  const both = S.drag && S.cmp;
+  const cols = both ? [['vac', xr + (w - xr)*0.33], ['air', xr + (w - xr)*0.68]] : [[mainKind(), xr + (w - xr)*0.5]];
+  const colColor = kind => (kind === 'air' || !S.drag) ? C.air : C.vac;
+  const r = 10, t = tOf(k);
+  for (const [kind, x] of cols){
+    // strobe images
+    if (S.strobe){
+      ctx.save(); ctx.globalAlpha = 0.28; ctx.fillStyle = colColor(kind);
+      for (let j=0; j*M.flash <= t + 1e-9; j++){
+        const s = state(kind, Math.min(NT, Math.round(j*M.flash/M.H)));
+        ctx.beginPath(); ctx.arc(x, Y(s.y) - r, r, 0, 2*Math.PI); ctx.fill();
+        if (s.landed) break;
+      }
+      ctx.restore();
+    }
+    const s = state(kind, k), yc = Y(s.y) - r;
+    // arrows (main body only)
+    if (kind === mainKind()){
+      const vs = 0.28*(B - T)/Math.max(1, -M.vmin, M.vmax), as = 0.13*(B - T)/Math.max(S.g, -M.amin, M.amax);
+      if (S.showV && !s.landed) arrow(ctx, x - 22, yc, s.v*vs, C.v, 'v');
+      if (S.showA && !s.landed) arrow(ctx, x + 22, yc, s.a*as, C.a, 'a');
+    }
+    ctx.fillStyle = colColor(kind); ctx.beginPath(); ctx.arc(x, yc, r, 0, 2*Math.PI); ctx.fill();
+    ctx.strokeStyle = C.fg; ctx.lineWidth = 1; ctx.stroke();
+    const name = !S.drag ? '' : kind === 'air' ? 'עם אוויר' : 'בלי אוויר';
+    if (name) rich(ctx, name, x, B + 16, 'center', FS, colColor(kind));
+  }
+  rich(ctx, 'קרקע', w - 8, h - 12, 'right', FS, C.muted);
+  rich(ctx, 't = ' + t.toFixed(2) + ' s', xr, h - 12, 'left', FS, C.fg);
+  if (S.strobe) rich(ctx, [['Δt = ' + M.flash + ' s'],['  הבזק כל']], w - 8, T - 12, 'right', FS-1, C.muted);
+}
+
+// three stacked graphs sharing the time axis
+function series(kind){
+  const air = kind === 'air';
+  return {y: air ? M.yA : M.yV, v: air ? M.vA : M.vV, a: air ? M.aA : M.aV,
+          color: (air || !S.drag) ? C.air : C.vac, dash: (air || !S.drag) ? [] : [7,4],
+          label: !S.drag ? '' : air ? 'עם אוויר' : 'בלי אוויר'};
+}
+function kinds(){ const out = []; if (M.showVac) out.push('vac'); if (S.drag) out.push('air'); return out; }
+function graph(id, key, k, ymin, ymax, ylabel, bottom, extra){
+  const {ctx, w, h} = setup($(id));
+  const A = axes(ctx, w, h, {xmin:0, xmax:M.tmax, ymin, ymax, ylabel, b: bottom ? 40 : 8, t:8, noXlabels:!bottom, xlabel: bottom ? 't (s)' : null});
+  clip(ctx, A);
+  hline(ctx, A, 0, C.axis, []);
+  if (extra) extra(ctx, A);
+  const items = [];
+  for (const kd of kinds()){
+    const s = series(kd);
+    poly(ctx, A, tOf, i => s[key][i], 0, NT, s.color, 1.5, s.dash, 0.25);
+    poly(ctx, A, tOf, i => s[key][i], 0, k, s.color, 2.4, s.dash, 1);
+    if (s.label) items.push({label:s.label, color:s.color, dash:s.dash});
+  }
+  vline(ctx, A, tOf(k), C.muted, []);
+  ctx.restore();
+  return {ctx, A, items};
+}
+function drawY(k){
+  const g = graph('cvY', 'y', k, 0, M.Ymax, 'y (m)', false, (ctx, A) => {
+    if (!S.strobe) return;
+    for (const kd of kinds()){
+      const s = series(kd); ctx.fillStyle = s.color;
+      for (let j=0; j*M.flash <= tOf(k) + 1e-9; j++){
+        const i = Math.round(j*M.flash/M.H); if (i > NT || !isFinite(s.y[i])) break;
+        ctx.beginPath(); ctx.arc(A.X(tOf(i)), A.Y(s.y[i]), 3, 0, 2*Math.PI); ctx.fill();
+      }
+    }
+  });
+  legend(g.ctx, g.A.R - 8, g.A.T + 12, g.items.reverse());
+}
+function drawV(k){
+  const pad = 0.12*Math.max(1, M.vmax - M.vmin);
+  graph('cvV', 'v', k, M.vmin - pad, M.vmax + pad, 'v (m/s)', false, (ctx, A) => {
+    if (S.drag) hline(ctx, A, -S.vT, C.muted, [3,4], 'מהירות סופית');
+  });
+}
+function drawA(k){
+  const lo = Math.min(M.amin, -S.g), hi = Math.max(M.amax, 0), pad = 0.18*(hi - lo || 1);
+  graph('cvA', 'a', k, lo - pad, hi + pad, 'a (m/s²)', true, (ctx, A) => hline(ctx, A, -S.g, C.muted, [3,4], '−g'));
+}
+
+/* ---------- readouts ---------- */
+const f2 = v => (Math.abs(v) < 5e-3 ? 0 : v).toFixed(2);
+const show = (id, on) => { $('l'+id).style.display = on ? '' : 'none'; $('r'+id).style.display = on ? '' : 'none'; };
+function readouts(k){
+  const s = state(mainKind(), k), t = tOf(k);
+  $('rt').textContent = f2(t) + ' s';
+  $('ry').textContent = f2(s.y) + ' m';
+  $('rv').textContent = f2(s.v) + ' m/s';
+  $('ra').textContent = f2(s.a) + ' m/s²';
+  $('tv').textContent = f2(t) + ' s';
+  const top = S.drag ? M.topAir : M.topVac;
+  show('Top', !!top); if (top) $('rTop').textContent = f2(top.y) + ' m  (t = ' + f2(top.t) + ' s)';
+  $('rLand').textContent = f2(S.drag ? M.tAir : M.tVac) + ' s';
+  $('rImp').textContent = f2(S.drag ? M.impAir : M.impVac) + ' m/s';
+  show('LandV', S.drag); show('ImpV', S.drag);
+  $('rLandV').textContent = f2(M.tVac) + ' s'; $('rImpV').textContent = f2(M.impVac) + ' m/s';
+  const b = $('badge');
+  if (s.landed){ b.textContent = 'הגוף נחת על הקרקע'; b.style.color = 'var(--c-muted)'; }
+  else if (S.drag && s.v < 0 && -s.v > 0.95*S.vT){ b.textContent = 'כמעט במהירות הסופית: a ≈ 0'; b.style.color = 'var(--ok)'; }
+  else if (top && Math.abs(t - top.t) < 0.025*M.tmax){ b.textContent = 'בשיא הגובה: v ≈ 0, אבל a ≠ 0'; b.style.color = 'var(--warn)'; }
+  else if (s.v > 0){ b.textContent = 'עולה ומאט'; b.style.color = 'var(--c-air)'; }
+  else { b.textContent = 'יורד ומאיץ'; b.style.color = 'var(--c-air)'; }
+}
+
+/* ---------- controls ---------- */
+function syncLabels(){
+  $('h0v').textContent = S.h0.toFixed(1) + ' m';
+  $('v0v').textContent = S.v0.toFixed(1) + ' m/s';
+  $('gv').textContent = S.g.toFixed(2) + ' m/s²';
+  $('vTv').textContent = (S.vT < 10 ? S.vT.toFixed(1) : Math.round(S.vT)) + ' m/s';
+  $('spv').textContent = S.speed + '×';
+  $('vT').disabled = !S.drag; $('cmp').disabled = !S.drag;
+}
+function syncInputs(){
+  $('h0').value = S.h0; $('v0').value = S.v0; $('g').value = S.g; $('vT').value = Math.log10(S.vT);
+  $('speed').value = S.speed;
+  for (const id of ['drag','cmp','strobe','showV','showA']) $(id).checked = S[id];
+  syncLabels();
+}
+const onParam = (id, conv) => $(id).oninput = e => { S[id] = conv(+e.target.value); syncLabels(); rebuild(); };
+onParam('h0', v => v); onParam('v0', v => v); onParam('g', v => v); onParam('vT', v => Math.pow(10, v));
+for (const id of ['drag','cmp']) $(id).onchange = e => { S[id] = e.target.checked; syncLabels(); rebuild(); };
+for (const id of ['strobe','showV','showA']) $(id).onchange = e => S[id] = e.target.checked;
+document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { S.g = +b.dataset.g; syncInputs(); build(); });
+document.querySelectorAll('[data-vt]').forEach(b => b.onclick = () => { S.vT = +b.dataset.vt; S.drag = true; syncInputs(); build(); S.k = 0; setPlaying(true); });
+
+const PRESETS = {
+  drop:    {h0:20,  v0:0,   g:9.8,  drag:false},
+  up:      {h0:1.5, v0:15,  g:9.8,  drag:false},
+  down:    {h0:20,  v0:-10, g:9.8,  drag:false},
+  moon:    {h0:20,  v0:0,   g:1.62, drag:false},
+  tennis:  {h0:100, v0:0,   g:9.8,  drag:true, vT:25, cmp:true},
+  feather: {h0:1.6, v0:0,   g:9.8,  drag:true, vT:1,  cmp:true},
+  upair:   {h0:1.5, v0:25,  g:9.8,  drag:true, vT:25, cmp:true},
+};
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+  Object.assign(S, PRESETS[b.dataset.p]); S.k = 0; syncInputs(); build(); setPlaying(true);
+});
+
+/* ---------- start ---------- */
+initThemeNotes({dark:'תצוגה כהה', show:'הצג הסברים', hide:'הסתר הסברים'});
+initPlayback(S, NT, 10, {play:'הפעל', pause:'עצור'});
+syncInputs();
+build();
+startLoop([['cvScene',drawScene],['cvY',drawY],['cvV',drawV],['cvA',drawA]], readouts);
+</script>
+</body>
+</html>

@@ -185,14 +185,15 @@ function initPlayback(S, NT, PERIOD, txt){
   setPlaying(S.playing);
 }
 // panels = [[canvasId, drawFn(k)], ...]; after(k) runs every frame after drawing (readouts)
+// PB.PERIOD may be changed later by the page (e.g. set to the run time in seconds, so speed 1 = real time)
 function startLoop(panels, after){
-  const {S, NT, PERIOD} = PB;
+  const {S, NT} = PB;
   let last = performance.now();
   function frame(now){
     requestAnimationFrame(frame);   // schedule first, so one failed draw never stops the loop
     const dt = Math.max(0, Math.min((now-last)/1000, 0.1)); last = now;   // rAF time can precede `last` on the first frame
     if (S.playing){
-      S.k += dt*S.speed*NT/PERIOD;
+      S.k += dt*S.speed*NT/PB.PERIOD;
       if (S.k >= NT){ S.k = NT; setPlaying(false); }
     }
     const k = Math.min(NT, Math.max(0, Math.round(S.k)));

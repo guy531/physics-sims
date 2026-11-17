@@ -25,6 +25,7 @@
 body{margin:0;background:var(--bg);color:var(--c-fg);font:16px/1.5 Assistant,"Segoe UI",Arial,sans-serif}
 a{color:var(--accent)}
 h1,h2,h3{line-height:1.2}
+.katex{direction:ltr;unicode-bidi:isolate}   /* formulas stay left-to-right inside Hebrew text */
 
 /* header: a surface band across the top */
 header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 20px 10px;
