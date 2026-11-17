@@ -5,14 +5,15 @@ Chat with the user in Hebrew. Simulation content for Quantum Physics II is in En
 
 ## Layout
 ```
-index.html                         home page (Hebrew, one card per course), rendered by shared/site.js
-courses/<slug>/index.html          course catalog page (same tiny template for every course; only data-course differs)
+index.html                         the only index page (Hebrew): a card per course listing direct links to its simulations
 courses/<slug>/<sim>.html          simulations, self-contained except for shared/sim.css + shared/sim.js
-shared/catalog.js                  CATALOG: courses (slug, lang, title, number) and their sims; single source for all catalog pages
-shared/sim.css, shared/sim.js      common look and helpers for simulations (canvas helpers, theme/notes, playback, frame loop)
-shared/site.css, shared/site.js    home and catalog pages
-thumbs/<sim>.png                   1600×900 screenshots shown on the catalog cards
+shared/catalog.js                  CATALOG: courses (slug, lang, title, number) and their sims (file, title, summary)
+shared/sim.css, shared/sim.js      common look and helpers (canvas helpers, theme switch/notes, playback, frame loop)
+shared/site.css, shared/site.js    the home page
 ```
+The user asked for a simple site: no per-course pages and no thumbnails (both were tried and removed).
+Visual style follows the user's study-planner site (https://guy531.github.io/study-planner/): warm neutrals, teal accent,
+Assistant + JetBrains Mono, slider theme switch.
 `catalog.js` is a script (not JSON) so the pages also work when opened directly from disk (file://).
 
 ## Adding a simulation
@@ -20,9 +21,9 @@ thumbs/<sim>.png                   1600×900 screenshots shown on the catalog ca
    The page calls `addColors(...)` for its extra `--c-*` tokens, `initPlayback(S, NT, PERIOD)`, `initThemeNotes()` and `startLoop(panels, readouts)`.
    Hebrew page: `<html lang="he" dir="rtl">` and pass Hebrew texts to `initThemeNotes({...})` / `initPlayback(S, NT, PERIOD, {play, pause})`.
 2. Add an entry to that course's `sims` in `shared/catalog.js`.
-3. Thumbnail: start the local server (`.claude/launch.json`, "site", port 8765) and run headless Edge:
-   `msedge --headless=new --hide-scrollbars --force-device-scale-factor=1 --window-size=1600,900 --virtual-time-budget=5000 --screenshot=thumbs/<sim>.png "http://localhost:8765/courses/<slug>/<sim>.html?t=0.6"`
-   (`?t=0.6` opens the simulation paused at 60% of the run.)
+3. Check it: local server from `.claude/launch.json` ("site", port 8765). Screenshots of the whole page with headless Edge:
+   `msedge --headless=new --hide-scrollbars --force-device-scale-factor=1 --window-size=1900,950 --virtual-time-budget=5000 --screenshot=<file>.png "http://localhost:8765/courses/<slug>/<sim>.html?t=0.6"`
+   (`?t=0.6` opens the simulation paused at 60% of the run; `--blink-settings=preferredColorScheme=1` forces light.)
 
 ## Open items
 - Course numbers: empty `number` fields in `shared/catalog.js`; the user will send them.
