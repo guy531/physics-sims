@@ -26,7 +26,6 @@ Assistant + JetBrains Mono, slider theme switch.
    (`?t=0.6` opens the simulation paused at 60% of the run; `--blink-settings=preferredColorScheme=1` forces light.)
 
 ## Open items
-- Course numbers: empty `number` fields in `shared/catalog.js`; the user will send them.
 - Published: repo https://github.com/guy531/physics-sims (public), GitHub Pages from `main` / root, live at https://guy531.github.io/physics-sims/ .
   Publishing = commit + `git push`; Pages rebuilds in about a minute.
 - Google Sites: link/embed instructions given to the user (HANDOFF §6); not yet confirmed done.
