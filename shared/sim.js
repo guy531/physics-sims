@@ -3,7 +3,7 @@
    A page provides: the element ids used below (theme, notes, play, restart, scrub, speed, spv),
    its own colour tokens (registered with addColors) and its draw functions. */
 "use strict";
-const FS = 14, FONT = FS + 'px system-ui, sans-serif';
+const FS = 14, FAMILY = 'Assistant, "Segoe UI", system-ui, sans-serif', FONT = FS + 'px ' + FAMILY;
 const $ = id => document.getElementById(id);
 
 /* ---------- colours (CSS tokens --c-<name> on :root, read into C) ---------- */
@@ -42,7 +42,7 @@ function fmt(v, step){
 function rich(ctx, parts, x, y, align, fs, color){
   if (typeof parts === 'string') parts = [[parts]];
   fs = fs || FS; align = align || 'center';
-  const F = s => s.toFixed(1) + 'px system-ui, sans-serif';
+  const F = s => s.toFixed(1) + 'px ' + FAMILY;
   ctx.save(); if (color) ctx.fillStyle = color;
   let wt = 0;
   for (const p of parts){ ctx.font = F(p[1] ? fs*0.75 : fs); wt += ctx.measureText(p[0]).width; }
@@ -134,14 +134,21 @@ function hline(ctx, A, y, color, dash, label){
 }
 
 /* ---------- theme & notes (buttons #theme, #notes; optional) ---------- */
-// texts can be overridden for Hebrew pages: initThemeNotes({dark:'מצב כהה', light:'מצב בהיר', show:'הצג הערות', hide:'הסתר הערות'})
+// #theme becomes a light/dark slider switch. Texts can be overridden for Hebrew pages:
+// initThemeNotes({dark:'תצוגה כהה', show:'הצג הערות', hide:'הסתר הערות'})
 function initThemeNotes(txt){
-  txt = Object.assign({dark:'☾ Dark mode', light:'☀ Light mode', show:'Show notes', hide:'Hide notes'}, txt || {});
+  txt = Object.assign({dark:'Dark mode', show:'Show notes', hide:'Hide notes'}, txt || {});
   const store = (k, v) => { try { localStorage.setItem(k, v); } catch(e){} };
   const load = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+  const sw = $('theme');
+  if (sw){
+    sw.className = 'theme-toggle'; sw.type = 'button';
+    sw.setAttribute('role', 'switch'); sw.setAttribute('aria-label', txt.dark); sw.title = txt.dark;
+    sw.innerHTML = '<span aria-hidden="true">☀</span><span aria-hidden="true">☾</span>';
+  }
   function applyTheme(t){
     document.documentElement.dataset.theme = t;
-    if ($('theme')) $('theme').textContent = t === 'dark' ? txt.light : txt.dark;
+    if (sw) sw.setAttribute('aria-checked', t === 'dark' ? 'true' : 'false');
     store('tdpt-theme', t);
     readColors();
   }

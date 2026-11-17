@@ -7,12 +7,12 @@
   const TXT = {
     he: {home:'סימולציות בפיסיקה', homeIntro:'סימולציות אינטראקטיביות לקורסי פיסיקה: מזיזים פרמטרים, צופים בגרפים ובאנימציות, ומשווים בין פתרון מדויק לקירובים.',
          allCourses:'→ כל הקורסים', sims:n => n === 1 ? 'סימולציה אחת' : n + ' סימולציות', soon:'בקרוב', empty:'הסימולציות לקורס הזה יתווספו בקרוב.',
-         open:'נפתח בלשונית חדשה', dark:'☾ מצב כהה', light:'☀ מצב בהיר', courseNo:'קורס'},
+         open:'נפתח בלשונית חדשה', dark:'תצוגה כהה', courseNo:'קורס'},
     en: {allCourses:'← All courses', sims:n => n === 1 ? '1 simulation' : n + ' simulations', soon:'Coming soon', empty:'Simulations for this course will be added soon.',
-         open:'Opens in a new tab', dark:'☾ Dark mode', light:'☀ Light mode', courseNo:'Course'}
+         open:'Opens in a new tab', dark:'Dark mode', courseNo:'Course'}
   };
   const header = (lang, title, intro, back) => `
-    <header>
+    <header class="top">
       <div>
         ${back ? `<a class="navlink crumb" href="${root}index.html">${esc(TXT[lang].allCourses)}</a>` : ''}
         <h1>${title}</h1>
@@ -35,8 +35,8 @@
           <div class="meta">${n ? L.sims(n) : L.soon}</div>
         </div></a>`;
     }).join('');
-    $('app').innerHTML = `<div class="site">${header('he', esc(L.home), L.homeIntro, false)}<div class="cards">${tiles}</div></div>`;
-    initThemeNotes({dark:L.dark, light:L.light});
+    $('app').innerHTML = `${header('he', esc(L.home), L.homeIntro, false)}<div class="site"><div class="cards">${tiles}</div></div>`;
+    initThemeNotes({dark:L.dark});
   }
 
   function course(){
@@ -54,9 +54,9 @@
           <p>${esc(s.summary)}</p>
         </div></a>`).join('');
     const title = esc(c.title) + num(c);
-    $('app').innerHTML = `<div class="site">${header(lang, title, '', true)}` +
+    $('app').innerHTML = `${header(lang, title, '', true)}<div class="site">` +
       (c.sims.length ? `<div class="cards">${tiles}</div>` : `<div class="empty">${esc(L.empty)}</div>`) + `</div>`;
-    initThemeNotes({dark:L.dark, light:L.light});
+    initThemeNotes({dark:L.dark});
   }
 
   (body.dataset.page === 'course' ? course : home)();
