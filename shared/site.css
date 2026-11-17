@@ -4,7 +4,7 @@ header.top{padding:18px max(20px, calc((100% - 860px)/2)) 14px;align-items:flex-
 header.top h1{font-size:1.6rem}
 header.top p{font-size:17px}
 .site{max-width:900px;margin:0 auto;padding:18px 20px 40px;display:flex;flex-direction:column;gap:14px}
-.num{font-family:"JetBrains Mono",Consolas,monospace;color:var(--c-muted);font-weight:500;font-size:.75em;margin-inline-start:10px;direction:ltr;unicode-bidi:isolate}
+.num{font-family:"JetBrains Mono",Consolas,monospace;color:var(--c-muted);font-weight:500;font-size:.75em;margin-inline-start:10px;unicode-bidi:isolate}
 
 .course{background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);
   padding:12px 18px 14px;border-inline-start:4px solid var(--accent)}
