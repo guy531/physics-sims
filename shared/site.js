@@ -3,8 +3,7 @@
 (function(){
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
   const T = {
-    title:'סימולציות בפיסיקה',
-    intro:'סימולציות אינטראקטיביות לקורסי פיסיקה: מזיזים פרמטרים, צופים בגרפים ובאנימציות, ומשווים בין פתרון מדויק לקירובים.',
+    title:'סימולציות בקורסי הפיסיקה',
     soon:{he:'בקרוב', en:'Coming soon'}, open:{he:'נפתח בלשונית חדשה', en:'Opens in a new tab'}, dark:'תצוגה כהה'
   };
   document.title = T.title;
@@ -20,7 +19,7 @@
   }).join('');
   $('app').innerHTML = `
     <header class="top">
-      <div><h1>${esc(T.title)}</h1><p>${esc(T.intro)}</p></div>
+      <div><h1>${esc(T.title)}</h1></div>
       <div class="hbtns"><button id="theme"></button></div>
     </header>
     <div class="site">${courses}</div>`;
