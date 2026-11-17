@@ -26,4 +26,6 @@ thumbs/<sim>.png                   1600×900 screenshots shown on the catalog ca
 
 ## Open items
 - Course numbers: empty `number` fields in `shared/catalog.js`; the user will send them.
-- GitHub: repo `guy531/physics-sims` (to be created), then enable Pages and give Google Sites embed instructions (HANDOFF §6).
+- Published: repo https://github.com/guy531/physics-sims (public), GitHub Pages from `main` / root, live at https://guy531.github.io/physics-sims/ .
+  Publishing = commit + `git push`; Pages rebuilds in about a minute.
+- Google Sites: link/embed instructions given to the user (HANDOFF §6); not yet confirmed done.
