@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time-Dependent Perturbation Theory</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<link rel="stylesheet" href="../../shared/sim.css">
+<style>
+:root{
+  --c-rwa:#16a34a; --c-levelB:#2563eb;
+  --c-l2:#2563eb; --c-l3:#dc2626; --c-l4:#0d9488; --c-l5:#9333ea; --c-l6:#b45309;
+}
+:root[data-theme="dark"]{
+  --c-rwa:#4ade80; --c-levelB:#60a5fa;
+  --c-l2:#60a5fa; --c-l3:#f87171; --c-l4:#2dd4bf; --c-l5:#c084fc; --c-l6:#fbbf24;
+}
+#cvP{height:max(170px, calc(var(--avail)*0.40))}
+#cvV{height:max(60px, calc(var(--avail)*0.12))}
+.grid3{grid-template-columns:1fr 1fr 1.3fr}
+</style>
+</head>
+<body>
+<header>
+  <div>
+  <h1>Time-Dependent Perturbation Theory: a Driven Few-Level System</h1>
+  <p>A two-level atom \(\{|a\rangle,|b\rangle\}\) with transition frequency \(\omega_0\) starts in \(|a\rangle\) and is perturbed by
+  \(V(t)=V_0\,g(t)\cos\omega t\) coupling the two levels. Compare the <b style="color:var(--c-ex)">exact</b> solution of the Schrödinger equation
+  with <b style="color:var(--c-first)">first-order perturbation theory</b>. Units: \(\hbar=1,\ \omega_0=1\).</p>
+  </div>
+  <div class="hbtns">
+    <a class="navlink" href="index.html">All simulations</a>
+    <a class="navlink" href="fermi-golden-rule.html">Fermi's golden rule →</a>
+    <button id="notes" title="Show or hide the explanatory captions"></button>
+    <button id="theme" title="Toggle light / dark theme"></button>
+  </div>
+</header>
+
+<div class="layout">
+<aside>
+  <div class="card">
+    <h2>Presets</h2>
+    <div class="row presets">
+      <button data-p="weak">Weak, resonant</button>
+      <button data-p="off">Off resonance</button>
+      <button data-p="strong">Strong drive (PT fails)</button>
+      <button data-p="static">Constant V, sudden</button>
+      <button data-p="ramp">Constant V, adiabatic</button>
+      <button data-p="sudden">Sudden pulse</button>
+      <button data-p="adiabatic">Slow pulse</button>
+      <button data-p="pi">π-pulse</button>
+    </div>
+    <h2 style="margin-top:10px">Several levels</h2>
+    <div class="row presets">
+      <button data-p="twolines">Two lines</button>
+      <button data-p="ladder3">3-level ladder</button>
+      <button data-p="anharm">Anharmonic ladder</button>
+      <button data-p="twophoton">Two-photon resonance</button>
+      <button data-p="ho">Harmonic oscillator</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Levels</h2>
+    <div class="ctl"><label>Number of levels N <b id="nLevv"></b></label><input id="nLev" type="range" min="2" max="6" step="1"></div>
+    <div id="levSliders"></div>
+    <div class="row" id="spacingBtns"><button id="eqSp">Equal spacing</button><button id="anh">Anharmonic</button></div>
+    <div class="ctl" id="coupBox"><label>Which levels V couples</label>
+      <select id="coup">
+        <option value="ladder">Neighbours only (ladder)</option>
+        <option value="sqrt">Ladder with √n (oscillator x)</option>
+        <option value="all">All pairs equally</option>
+      </select>
+    </div>
+    <div class="ctl" id="targetBox"><label>Target level (lower graphs)</label><select id="target"></select></div>
+  </div>
+
+  <div class="card">
+    <h2>Perturbation</h2>
+    <div class="ctl">
+      <label>Envelope g(t)</label>
+      <select id="env">
+        <option value="cw">Switched on at tₒₙ (ramp time T)</option>
+        <option value="pulse">Gaussian pulse centred at tₘₐₓ/2</option>
+      </select>
+    </div>
+    <div class="ctl"><label>Strength V₀ <b id="V0v"></b></label><input id="V0" type="range" min="-3" max="0" step="0.01"></div>
+    <div class="ctl"><label>Drive frequency ω <b id="wv"></b></label><input id="w" type="range" min="0" max="4" step="0.005"></div>
+    <div class="ctl" id="tonBox"><label><span>Switch-on time t<sub>on</sub></span> <b id="tonv"></b></label><input id="ton" type="range" min="0" max="100" step="0.5"></div>
+    <div class="ctl" id="TBox"><label>Ramp time T <b id="Tv"></b></label><input id="T" type="range" min="0" max="60" step="0.5"></div>
+    <div class="ctl" id="tauBox"><label>Pulse width τ <b id="tauv"></b></label><input id="tau" type="range" min="0.2" max="20" step="0.1"></div>
+    <div class="ctl"><label><span>Total time t<sub>max</sub></span> <b id="tmaxv"></b></label><input id="tmax" type="range" min="10" max="1000" step="5"></div>
+  </div>
+
+  <div class="card">
+    <h2>Playback</h2>
+    <div class="row">
+      <button id="play" class="primary">Pause</button>
+      <button id="restart">Restart</button>
+    </div>
+    <div class="ctl"><label>Time <b id="tv"></b></label><input id="scrub" type="range" min="0" max="1500" step="1"></div>
+    <div class="ctl"><label>Speed <b id="spv"></b></label><input id="speed" type="range" min="0.25" max="4" step="0.25"></div>
+    <div class="checks">
+      <label><input type="checkbox" id="showEx" checked><span class="sw" style="background:var(--c-ex)"></span>Exact (numerical)</label>
+      <label><input type="checkbox" id="show1" checked><span class="sw" style="background:var(--c-first)"></span>First-order PT</label>
+      <label id="rwaBox"><input type="checkbox" id="showRWA"><span class="sw" style="background:var(--c-rwa)"></span>Rabi formula (RWA, sudden switch-on only)</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>At current time</h2>
+    <div class="readout">
+      <span>t</span><span id="rt"></span>
+      <span>P<sub class="tgt">2</sub> exact</span><span id="rex"></span>
+      <span>P<sub class="tgt">2</sub><sup>(1)</sup></span><span id="r1"></span>
+      <span>rel. error</span><span id="rerr"></span>
+      <span>Δ = ω − ω<sub><span class="tgt">2</span>1</sub></span><span id="rdel"></span>
+    </div>
+    <span id="badge" class="badge"></span>
+  </div>
+</aside>
+
+<main>
+  <div class="card">
+    <h2>Transition probabilities P<sub>n</sub>(t) = |c<sub>n</sub>(t)|²</h2>
+    <canvas id="cvP"></canvas>
+    <canvas id="cvV"></canvas>
+    <p class="cap">Top: probability to find the system in each excited level (it starts in |1⟩). Bottom: the perturbation V(t). Faint curves show the full run; the bright part is the history up to the current time.</p>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <h2>Level populations</h2>
+      <canvas id="cvL"></canvas>
+      <p class="cap">Disc area ∝ exact population. Dashed ring: first-order P<sup>(1)</sup>. The wavy arrow is the drive quantum ħω (stacked arrows: several quanta); compare the tips with the levels to see the detunings.</p>
+    </div>
+    <div class="card">
+      <h2>Amplitude c<sub class="tgt">2</sub>(t)</h2>
+      <canvas id="cvC"></canvas>
+      <p class="cap">Interaction-picture amplitude of the target level in the complex plane. Dashed circle: |c| = 1. First order has no such bound.</p>
+    </div>
+    <div class="card">
+      <h2>Line shape P<sub class="tgt">2</sub>(ω) at current t</h2>
+      <canvas id="cvS"></canvas>
+      <p class="cap">Transition probability vs. drive frequency at the current time. The resonance narrows as ~2π/t (dashed markers): the road to Fermi's golden rule.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Theory</h2>
+    <div class="theory">
+      <div>
+        <h3>Setup</h3>
+        \(H=H_0+V(t)\), with \(H_0|a\rangle=E_a|a\rangle,\ H_0|b\rangle=E_b|b\rangle\), \(\omega_0=(E_b-E_a)/\hbar\). Write
+        $$|\psi(t)\rangle=c_a(t)e^{-iE_at/\hbar}|a\rangle+c_b(t)e^{-iE_bt/\hbar}|b\rangle .$$
+      </div>
+      <div>
+        <h3>Exact equations (solved numerically here)</h3>
+        $$i\hbar\,\dot c_a=V_{ab}(t)\,e^{-i\omega_0t}\,c_b,\qquad i\hbar\,\dot c_b=V_{ba}(t)\,e^{i\omega_0t}\,c_a$$
+        with \(c_a(0)=1,\ c_b(0)=0\). Here \(V_{ab}=V_{ba}=V_0\,g(t)\cos\omega t\).
+      </div>
+      <div>
+        <h3>First order</h3>
+        Set \(c_a\approx1\) on the right-hand side:
+        $$c_b^{(1)}(t)=-\frac{i}{\hbar}\int_0^t V_{ba}(t')\,e^{i\omega_0t'}\,dt' .$$
+        Valid as long as \(|c_b|^2\ll1\), i.e. the initial state is hardly depleted.
+      </div>
+      <div>
+        <h3>Harmonic perturbation</h3>
+        Keeping only the resonant term (\(\Delta=\omega-\omega_0\)):
+        $$P_b^{(1)}(t)\approx\frac{V_0^2}{\hbar^2}\,\frac{\sin^2(\Delta t/2)}{\Delta^2}.$$
+        At resonance \(P_b^{(1)}=V_0^2t^2/4\hbar^2\) grows without bound, so first order requires \(V_0t/\hbar\ll1\).
+        For large \(t\), \(\sin^2(\Delta t/2)/\Delta^2\to\frac{\pi t}{2}\,\delta(\Delta)\): a rate, i.e. Fermi's golden rule.
+      </div>
+      <div>
+        <h3>Exact (rotating-wave) result: Rabi oscillations</h3>
+        $$P_b(t)=\frac{V_0^2}{V_0^2+\hbar^2\Delta^2}\,\sin^2\!\left(\frac{\sqrt{V_0^2+\hbar^2\Delta^2}}{2\hbar}\,t\right)$$
+        Expanding for small \(V_0\) reproduces the first-order formula.
+      </div>
+      <div>
+        <h3>Several levels</h3>
+        Levels \(|1\rangle,\dots,|N\rangle\) (with two levels, \(|a\rangle=|1\rangle,\ |b\rangle=|2\rangle\)), \(\omega_{nm}=(E_n-E_m)/\hbar\), start in \(|1\rangle\):
+        $$i\hbar\,\dot c_n=\sum_m V_{nm}(t)\,e^{i\omega_{nm}t}\,c_m .$$
+        First order only reaches levels coupled <i>directly</i> to \(|1\rangle\):
+        \(c_n^{(1)}=-\frac i\hbar\int_0^tV_{n1}e^{i\omega_{n1}t'}dt'\), with a resonance at \(\omega=\omega_{n1}\) for each such level.
+        A level reached only through an intermediate \(|m\rangle\) needs second order,
+        $$c_n^{(2)}=\Big(\!-\frac i\hbar\Big)^{\!2}\sum_m\int_0^t\!dt'\,V_{nm}(t')e^{i\omega_{nm}t'}\int_0^{t'}\!dt''\,V_{m1}(t'')e^{i\omega_{m1}t''},$$
+        which is resonant when \(2\omega=\omega_{n1}\) (two-photon absorption), with strength \(\propto V_0^2/(\omega_{m1}-\omega)\).
+      </div>
+      <div>
+        <h3>Ladders and the harmonic oscillator</h3>
+        With equal spacing every step of the ladder is resonant at the same \(\omega\), so the drive climbs the whole ladder.
+        Anharmonicity detunes the upper steps and the system stays almost a two-level system.
+        With couplings \(\propto\sqrt n\) (the matrix elements of \(x\)) the system is a driven harmonic oscillator: the exact state is a
+        coherent state, the populations are Poissonian with mean \(\bar n=(V_0t/2\hbar)^2\), and the first-order \(P_2^{(1)}\) is exactly \(\bar n\).
+      </div>
+      <div>
+        <h3>Gaussian pulse, ω = 0</h3>
+        For \(V=V_0e^{-(t-t_0)^2/2\tau^2}\):
+        $$P_b^{(1)}=\frac{2\pi V_0^2\tau^2}{\hbar^2}\,e^{-\omega_0^2\tau^2}.$$
+        Short pulse (\(\omega_0\tau\ll1\)): sudden, transitions happen. Long pulse (\(\omega_0\tau\gg1\)): adiabatic, the system follows and returns to \(|a\rangle\).
+      </div>
+      <div>
+        <h3>Switching on a constant V: sudden vs. adiabatic</h3>
+        Envelope \(g=0\) for \(t&lt;t_{on}\), then \(g=\sin^2\!\big(\pi(t-t_{on})/2T\big)\) up to \(t_{on}+T\), then \(g=1\) (\(T=0\): a sudden step).
+        With \(V\) on, the eigenstates of \(H_0+V\) are \(|a'\rangle\approx|a\rangle-\frac{V_0}{\hbar\omega_0}|b\rangle\) and \(|b'\rangle\).
+        <b>Sudden</b> (\(\omega_0T\ll1\)): the state is still \(|a\rangle=\) a superposition of \(|a'\rangle,|b'\rangle\), which beat:
+        $$P_b\approx\frac{4V_0^2}{\hbar^2\omega_0^2}\sin^2\frac{\omega_0(t-t_{on})}{2}.$$
+        <b>Adiabatic</b> (\(\omega_0T\gg1\)): the state follows \(|a'\rangle\), so \(P_b\to V_0^2/\hbar^2\omega_0^2\) with no oscillation.
+      </div>
+    </div>
+    <h3>Things to try</h3>
+    <ul class="try">
+      <li><b>Weak, resonant</b> → then slowly raise V₀. At what value of V₀t does first order start to fail? Watch the orange ring outgrow the level.</li>
+      <li><b>Off resonance</b>: move ω away from 1. The oscillation period of P<sub>b</sub> is 2π/|Δ| and its amplitude ~ V₀²/Δ². In the complex plane c<sub>b</sub> runs on a circle.</li>
+      <li>Pause at several times and look at the line shape: the central peak height grows as t², the width shrinks as 1/t, so the area grows as t.</li>
+      <li><b>π-pulse</b>: the exact solution transfers the whole population to |b⟩, first order predicts P &gt; 2. What pulse area gives a 2π-pulse?</li>
+      <li><b>Sudden vs. slow pulse</b>: change τ with ω = 0 and compare with \(2\pi V_0^2\tau^2e^{-\tau^2}\).</li>
+      <li><b>Constant V, sudden</b>: even a static perturbation produces small, fast oscillations of P<sub>b</sub> at frequency ω₀ once it is switched on. Why don't they grow?</li>
+      <li><b>Constant V, adiabatic</b>: now increase the ramp time T from 0 to ~40. The oscillations die out and P<sub>b</sub> settles at V₀²/ω₀². Around which value of ω₀T does the crossover happen?</li>
+      <li><b>Two lines</b>: two upper levels, both coupled to |1⟩. The line shape of the target has a peak at its own frequency; switch the target to see the other one.</li>
+      <li><b>3-level ladder</b>: |3⟩ is not coupled to |1⟩, so first order says P₃ = 0 forever, but the exact solution climbs to |3⟩. How does P₃ grow at short times (t², t⁴, …)?</li>
+      <li><b>Anharmonic ladder</b>: the upper steps are detuned and the population stays in |1⟩, |2⟩. Press "Equal spacing" and watch it climb.</li>
+      <li><b>Two-photon resonance</b>: ω is detuned from |2⟩ but 2ω = ω₃₁. Look for the extra peak at ω₃₁/2 in the line shape of |3⟩ (exact only).</li>
+      <li><b>Harmonic oscillator</b>: the populations of |1⟩…|6⟩ form a Poisson distribution; compare P₂<sup>(1)</sup> with the mean excitation. Try adding anharmonicity.</li>
+    </ul>
+  </div>
+</main>
+</div>
+
+<script src="../../shared/sim.js"></script>
+<script>
+"use strict";
+addColors('rwa','levelB','l2','l3','l4','l5','l6');
+const NT = 1500;      // number of recorded time steps
+const PERIOD = 12;     // seconds for a full run at speed 1
+
+// Levels |1>..|N>, energies E[n] (E[0] = 0, so E[n] = omega_{n+1,1}). Initial state |1>.
+const S = {env:'cw', V0:0.01, w:1, tau:5, tmax:100, ton:0, T:0, speed:1,
+           nLev:2, E:[0,1,2,3,4,5], coup:'ladder', target:1,
+           showEx:true, show1:true, showRWA:false, playing:true, k:0};
+const W0 = () => S.E[S.target];      // transition frequency |1> -> target level
+const wMaxSpec = () => { let m = 0; for (let n=1;n<S.nLev;n++) m = Math.max(m, S.E[n]); return Math.min(4.5, Math.max(2.5, 1.15*m)); };
+
+/* ---------- physics ---------- */
+// envelope g(t): Gaussian pulse, or switch-on at t_on with a sin^2 ramp of duration T (T = 0: sudden step)
+function gfun(p){
+  const {tau, tmax, ton, T} = p, t0 = tmax/2;
+  if (p.env === 'pulse') return t => Math.exp(-(t-t0)*(t-t0)/(2*tau*tau));
+  if (T <= 0) return t => t < ton ? 0 : 1;
+  return t => t < ton ? 0 : t >= ton+T ? 1 : Math.pow(Math.sin(Math.PI*(t-ton)/(2*T)), 2);
+}
+function Vfun(p, w){
+  const g = gfun(p), V0 = p.V0;
+  return t => V0*g(t)*Math.cos(w*t);
+}
+// coupled pairs (n<m) with relative strength M:  V_nm(t) = M * V(t)
+function couplings(p){
+  const pairs = [];
+  for (let n=0;n<p.nLev;n++) for (let m=n+1;m<p.nLev;m++){
+    let M = 0;
+    if (p.coup === 'all') M = 1;
+    else if (m === n+1) M = p.coup === 'sqrt' ? Math.sqrt(m) : 1;
+    if (M) pairs.push({n, m, M, d: p.E[n]-p.E[m]});
+  }
+  return pairs;
+}
+
+// RK4 for the exact amplitudes (interaction picture):  i dc_n/dt = sum_m V_nm(t) e^{i(E_n-E_m)t} c_m
+// Simpson for first order (same evaluation points):  c_n^(1) = -i int V_n1(t') e^{i E_n t'} dt'
+function run(p, w, full, tgt){
+  const N = NT, H = p.tmax/N, V = Vfun(p, w), L = p.nLev, E = p.E;
+  const pairs = couplings(p), np = pairs.length;
+  let fmax = 0;
+  for (let n=1;n<L;n++) fmax = Math.max(fmax, Math.abs(E[n]));
+  let dtT = Math.min(0.05, 0.25/(w+fmax+1e-9));
+  if (p.env === 'pulse') dtT = Math.min(dtT, p.tau/10);
+  else if (p.T > 0) dtT = Math.min(dtT, p.T/10);
+  const m = Math.max(1, Math.ceil(H/dtT)), h = H/m;
+  const M0 = new Float64Array(L);
+  for (const q of pairs) if (q.n === 0) M0[q.m] = q.M;
+  const Pt = new Float64Array(N+1), P1t = new Float64Array(N+1);
+  let P, P1, tR, tI, t1R, t1I;
+  if (full){
+    P = Array.from({length:L}, () => new Float64Array(N+1));
+    P1 = Array.from({length:L}, () => new Float64Array(N+1));
+    tR = new Float64Array(N+1); tI = new Float64Array(N+1); t1R = new Float64Array(N+1); t1I = new Float64Array(N+1);
+  }
+  const cr = new Float64Array(L), ci = new Float64Array(L); cr[0] = 1;
+  const fr = new Float64Array(L), fi = new Float64Array(L);
+  const kr = [0,1,2,3].map(() => new Float64Array(L)), ki = [0,1,2,3].map(() => new Float64Array(L));
+  const yr = new Float64Array(L), yi = new Float64Array(L);
+  const cs = new Float64Array(3*np), sn = new Float64Array(3*np);
+  function deriv(Vt, slot, ar, ai, oR, oI){
+    oR.fill(0); oI.fill(0);
+    for (let j=0;j<np;j++){
+      const q = pairs[j], c = cs[slot*np+j], s = sn[slot*np+j], VM = Vt*q.M;
+      // dc_n += -i VM e^{+i theta} c_m ,  dc_m += -i VM e^{-i theta} c_n ,  theta = (E_n - E_m) t
+      let xr = c*ar[q.m] - s*ai[q.m], xi = c*ai[q.m] + s*ar[q.m];
+      oR[q.n] += VM*xi; oI[q.n] -= VM*xr;
+      xr = c*ar[q.n] + s*ai[q.n]; xi = c*ai[q.n] - s*ar[q.n];
+      oR[q.m] += VM*xi; oI[q.m] -= VM*xr;
+    }
+  }
+  const rec = k => {
+    Pt[k] = cr[tgt]*cr[tgt] + ci[tgt]*ci[tgt];
+    P1t[k] = fr[tgt]*fr[tgt] + fi[tgt]*fi[tgt];
+    if (full){
+      for (let n=0;n<L;n++){ P[n][k] = cr[n]*cr[n] + ci[n]*ci[n]; P1[n][k] = fr[n]*fr[n] + fi[n]*fi[n]; }
+      tR[k] = cr[tgt]; tI[k] = ci[tgt]; t1R[k] = fr[tgt]; t1I[k] = fi[tgt];
+    }
+  };
+  rec(0);
+  let t = 0;
+  for (let k=1; k<=N; k++){
+    for (let j=0; j<m; j++){
+      const V1 = V(t), V2 = V(t+h/2), V3 = V(t+h);
+      for (let jj=0;jj<np;jj++){
+        const d = pairs[jj].d;
+        cs[jj] = Math.cos(d*t);            sn[jj] = Math.sin(d*t);
+        cs[np+jj] = Math.cos(d*(t+h/2));   sn[np+jj] = Math.sin(d*(t+h/2));
+        cs[2*np+jj] = Math.cos(d*(t+h));   sn[2*np+jj] = Math.sin(d*(t+h));
+      }
+      deriv(V1, 0, cr, ci, kr[0], ki[0]);
+      for (let n=0;n<L;n++){ yr[n] = cr[n] + h/2*kr[0][n]; yi[n] = ci[n] + h/2*ki[0][n]; }
+      deriv(V2, 1, yr, yi, kr[1], ki[1]);
+      for (let n=0;n<L;n++){ yr[n] = cr[n] + h/2*kr[1][n]; yi[n] = ci[n] + h/2*ki[1][n]; }
+      deriv(V2, 1, yr, yi, kr[2], ki[2]);
+      for (let n=0;n<L;n++){ yr[n] = cr[n] + h*kr[2][n]; yi[n] = ci[n] + h*ki[2][n]; }
+      deriv(V3, 2, yr, yi, kr[3], ki[3]);
+      for (let n=0;n<L;n++){
+        cr[n] += h/6*(kr[0][n] + 2*kr[1][n] + 2*kr[2][n] + kr[3][n]);
+        ci[n] += h/6*(ki[0][n] + 2*ki[1][n] + 2*ki[2][n] + ki[3][n]);
+      }
+      // first order: dc_n/dt = -i V M0 e^{i E_n t} = V M0 sin - i V M0 cos
+      for (let n=1;n<L;n++){
+        if (!M0[n]) continue;
+        const e = E[n];
+        const s1 = Math.sin(e*t), s2 = Math.sin(e*(t+h/2)), s3 = Math.sin(e*(t+h));
+        const c1 = Math.cos(e*t), c2 = Math.cos(e*(t+h/2)), c3 = Math.cos(e*(t+h));
+        fr[n] += h/6*M0[n]*(V1*s1 + 4*V2*s2 + V3*s3);
+        fi[n] -= h/6*M0[n]*(V1*c1 + 4*V2*c2 + V3*c3);
+      }
+      t += h;
+    }
+    t = k*H;
+    rec(k);
+  }
+  return {Pt, P1t, P, P1, tR, tI, t1R, t1I, direct: M0[tgt] !== 0};
+}
+
+function rabi(V0, w, t){
+  const D = w - W0(), O2 = V0*V0 + D*D;
+  if (O2 === 0) return 0;
+  const s = Math.sin(Math.sqrt(O2)*t/2);
+  return V0*V0/O2*s*s;
+}
+
+let traj = null, spec = null, specTimer = null;
+const tGrid = () => k => k*S.tmax/NT;
+
+function recompute(){
+  if (S.target >= S.nLev) S.target = S.nLev - 1;
+  const r = run(S, S.w, true, S.target);
+  traj = {Pex:r.Pt, P1:r.P1t, Pall:r.P, P1all:r.P1, Pa:r.P[0], bR:r.tR, bI:r.tI, b1R:r.t1R, b1I:r.t1I, direct:r.direct};
+  const t = tGrid();
+  traj.rwa = new Float64Array(NT+1);
+  for (let k=0;k<=NT;k++) traj.rwa[k] = t(k) < S.ton ? 0 : rabi(S.V0, S.w, t(k) - S.ton);
+  const mx = a => { let m=0; for (const v of a) if (v>m) m=v; return m; };
+  traj.maxEx = 0; traj.max1 = 0;
+  for (let n=1;n<S.nLev;n++){ traj.maxEx = Math.max(traj.maxEx, mx(r.P[n])); traj.max1 = Math.max(traj.max1, mx(r.P1[n])); }
+  traj.maxRWA = mx(traj.rwa);
+  // smooth V(t) curve for display
+  const NV = 3000, V = Vfun(S, S.w);
+  traj.vt = new Float64Array(NV+1); traj.vv = new Float64Array(NV+1);
+  for (let i=0;i<=NV;i++){ traj.vt[i]=i*S.tmax/NV; traj.vv[i]=V(traj.vt[i]); }
+  spec = null; specJob++;
+  clearTimeout(specTimer);
+  specTimer = setTimeout(computeSpectrum, 180);
+}
+
+// the line shape needs one full run per frequency: compute it in small chunks so the page stays responsive
+let specJob = 0;
+function computeSpectrum(){
+  const job = ++specJob;
+  const NW = (S.nLev > 3 || S.tmax > 300) ? 101 : 161, WM = wMaxSpec();
+  const ws = new Float64Array(NW);
+  for (let i=0;i<NW;i++) ws[i] = i*WM/(NW-1);
+  const s = spec = {ws, ex:new Float32Array(NW*(NT+1)), f1:new Float32Array(NW*(NT+1)), NW, WM, done:0};
+  (function chunk(){
+    if (job !== specJob) return;
+    const t0 = performance.now();
+    while (s.done < NW && performance.now() - t0 < 25){
+      const r = run(S, ws[s.done], false, S.target);
+      s.ex.set(r.Pt, s.done*(NT+1)); s.f1.set(r.P1t, s.done*(NT+1));
+      s.done++;
+    }
+    if (s.done < NW) setTimeout(chunk, 0);
+  })();
+}
+
+/* ---------- panels ---------- */
+const useRWA = () => S.showRWA && S.env === 'cw' && S.T === 0 && S.nLev === 2;
+const lab = n => '|' + (n+1) + '⟩';
+// colour of level n (0-based): with two levels keep the classic exact/1st-order colours
+const levColor = n => n === 0 ? C.levelA : (S.nLev === 2 ? C.ex : C['l'+(n+1)]);
+const firstColor = n => S.nLev === 2 ? C.first : levColor(n);
+
+function drawP(k){
+  const {ctx,w,h} = setup($('cvP'));
+  let m = 0;
+  if (S.showEx) m = Math.max(m, traj.maxEx);
+  if (S.show1) m = Math.max(m, traj.max1);
+  if (useRWA()) m = Math.max(m, traj.maxRWA);
+  const ymax = m > 0 ? Math.min(m*1.12, 1.6) : 1;
+  const ylabel = S.nLev === 2 ? [['P'],['2','sub'],['(t)']] : [['P'],['n','sub'],['(t)']];
+  const M = axes(ctx, w, h, {xmin:0, xmax:S.tmax, ymin:0, ymax, xlabel:'t', ylabel});
+  const t = tGrid();
+  clip(ctx, M);
+  if (ymax > 1){
+    ctx.save(); ctx.strokeStyle=C.muted; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(M.L,M.Y(1)); ctx.lineTo(M.R,M.Y(1)); ctx.stroke();
+    ctx.fillStyle=C.muted; ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('P = 1', M.L+4, M.Y(1)-2); ctx.restore();
+  }
+  const series = [], items = [];
+  if (useRWA()){ series.push({a:traj.rwa, color:C.rwa, dash:[2,3]}); items.push({label:'Rabi (RWA)', color:C.rwa, dash:[2,3]}); }
+  for (let n=1;n<S.nLev;n++){
+    if (S.show1 && traj.P1all[n].some(v => v > 0)) series.push({a:traj.P1all[n], color:firstColor(n), dash:[7,4]});
+    if (S.showEx) series.push({a:traj.Pall[n], color:levColor(n), dash:[]});
+  }
+  if (S.nLev === 2){
+    if (S.show1) items.push({label:'1st order', color:C.first, dash:[7,4]});
+    if (S.showEx) items.push({label:'exact', color:C.ex});
+  } else {
+    for (let n=1;n<S.nLev;n++) items.push({label:lab(n), color:levColor(n)});
+  }
+  for (const s of series){
+    poly(ctx, M, t, i=>s.a[i], 0, NT, s.color, 1.5, s.dash, 0.25);
+    poly(ctx, M, t, i=>s.a[i], 0, k, s.color, 2.4, s.dash, 1);
+  }
+  vline(ctx, M, t(k), C.muted, []);
+  ctx.restore();
+  legend(ctx, M.R-8, M.T+12, items.reverse());
+  ctx.fillStyle = C.muted; ctx.textAlign='left'; ctx.textBaseline='top';
+  let ynote = M.T+6;
+  if (S.nLev > 2 && S.showEx && S.show1){ ctx.fillText('solid: exact   dashed: 1st order', M.L+8, ynote); ynote += FS+6; }
+  if (S.show1 && traj.max1 > 1.6){
+    ctx.fillStyle = C.first;
+    ctx.fillText('1st order leaves the axis (max ' + traj.max1.toPrecision(3) + ')', M.L+8, ynote);
+  }
+}
+
+function drawV(k){
+  const {ctx,w,h} = setup($('cvV'));
+  const A = S.V0*1.15;
+  const M = axes(ctx, w, h, {xmin:0, xmax:S.tmax, ymin:-A, ymax:A, ylabel:'V(t)', b:10, t:8, noXlabels:true});
+  clip(ctx, M);
+  const tc = k*S.tmax/NT, NV = traj.vt.length-1, iv = Math.round(tc/S.tmax*NV);
+  poly(ctx, M, i=>traj.vt[i], i=>traj.vv[i], 0, NV, C.drive, 1, [], 0.25);
+  poly(ctx, M, i=>traj.vt[i], i=>traj.vv[i], 0, iv, C.drive, 1.4, [], 1);
+  vline(ctx, M, tc, C.muted, []);
+  ctx.restore();
+}
+
+function drawLevels(k){
+  const {ctx,w,h} = setup($('cvL'));
+  const L = S.nLev, E = S.E;
+  let Emax = 1e-9; for (let n=0;n<L;n++) Emax = Math.max(Emax, E[n]);
+  const top = h*(L === 2 ? 0.24 : 0.10), bot = h*(L === 2 ? 0.70 : 0.82);
+  const Y = e => bot - e/Emax*(bot-top);
+  const xL = w*0.30, xR = w*0.56, cx = (xL+xR)/2;
+  const ys = []; for (let n=0;n<L;n++) ys.push(Y(E[n]));
+  const srt = ys.slice().sort((a,b) => a-b); let minGap = bot - top;
+  for (let i=1;i<srt.length;i++) minGap = Math.min(minGap, srt[i]-srt[i-1]);
+  const rmax = Math.max(5, Math.min(34, 0.42*minGap, (xR-xL)*0.32));
+  const tc = k*S.tmax/NT, pct = v => (100*v).toFixed(1) + '%';
+  // level lines
+  ctx.strokeStyle = C.fg; ctx.lineWidth = 2.5;
+  for (let n=0;n<L;n++){ ctx.beginPath(); ctx.moveTo(xL,ys[n]); ctx.lineTo(xR,ys[n]); ctx.stroke(); }
+  // populations
+  for (let n=0;n<L;n++){
+    const P = traj.Pall[n][k];
+    ctx.globalAlpha = 0.85; ctx.fillStyle = levColor(n);
+    ctx.beginPath(); ctx.arc(cx, ys[n], rmax*Math.sqrt(Math.max(P,0)), 0, 2*Math.PI); ctx.fill(); ctx.globalAlpha = 1;
+    if (S.show1 && n > 0 && traj.P1all[n][k] > 0){
+      const r1 = Math.min(rmax*Math.sqrt(traj.P1all[n][k]), 2.2*rmax, (xR-xL)/2 + 6);
+      ctx.save(); ctx.strokeStyle = firstColor(n); ctx.lineWidth = 2; ctx.setLineDash([5,4]);
+      ctx.beginPath(); ctx.arc(cx, ys[n], r1, 0, 2*Math.PI); ctx.stroke(); ctx.restore();
+    }
+  }
+  // labels to the right of each level
+  for (let n=0;n<L;n++){
+    let x = xR + 10;
+    x += rich(ctx, lab(n), x, ys[n], 'left', FS+2, C.fg) + 8;
+    x += rich(ctx, pct(traj.Pall[n][k]), x, ys[n], 'left', FS, levColor(n)) + 8;
+    if (S.show1 && n > 0) rich(ctx, '1st: ' + pct(traj.P1all[n][k]), x, ys[n], 'left', FS-1, firstColor(n));
+  }
+  // drive photons (stacked for several levels: multi-photon transitions)
+  const xp = w*0.15, env = gfun(S)(tc), ph = performance.now()/120;
+  if (S.w > 0){
+    let base = Y(0);
+    for (let j=0; j<6; j++){
+      let yTop = Y((j+1)*S.w);
+      if (j > 0 && yTop < top - 6) break;
+      yTop = Math.max(yTop, 6);
+      if (base - yTop < 12) break;
+      ctx.save(); ctx.globalAlpha = (j === 0 ? 1 : 0.4)*(0.15 + 0.85*env); ctx.strokeStyle = C.drive; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let y=base; y>=yTop+8; y-=1){ const x = xp + 6*Math.sin((base-y)/5 - ph); y === base ? ctx.moveTo(x,y) : ctx.lineTo(x,y); }
+      ctx.stroke();
+      ctx.fillStyle = C.drive; ctx.beginPath(); ctx.moveTo(xp, yTop); ctx.lineTo(xp-6, yTop+10); ctx.lineTo(xp+6, yTop+10); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      if (j === 0) rich(ctx, 'ħω', xp-12, (base+yTop)/2, 'right', FS+3, C.drive);
+      base = yTop;
+      if (L === 2) break;
+    }
+  } else {
+    ctx.save(); ctx.fillStyle = C.drive; ctx.textAlign='center'; ctx.globalAlpha = 0.15 + 0.85*env;
+    ctx.fillText('static V', xp, (top+bot)/2); ctx.fillText('(ω = 0)', xp, (top+bot)/2+16); ctx.restore();
+  }
+  // dashed extensions of the levels towards the photons
+  ctx.save(); ctx.strokeStyle = C.muted; ctx.setLineDash([3,4]); ctx.lineWidth = 1;
+  ctx.beginPath(); for (let n=0;n<L;n++){ ctx.moveTo(xp-14, ys[n]); ctx.lineTo(xL, ys[n]); } ctx.stroke(); ctx.restore();
+  rich(ctx, [['Δ = ω − ω'],[(S.target+1)+'1','sub'],[' = ' + (S.w - W0()).toFixed(3)]], w/2, h-12, 'center', FS, C.muted);
+}
+
+function drawComplex(k){
+  const {ctx,w,h} = setup($('cvC'));
+  const size = Math.min(w, h-24), cx = w/2, cy = (h-24)/2 + 6;
+  const mx = (a, b) => { let m=0; for (let i=0;i<=NT;i++){ const r=Math.hypot(a[i],b[i]); if(r>m)m=r; } return m; };
+  if (traj._rex === undefined){ traj._rex = mx(traj.bR,traj.bI); traj._r1 = mx(traj.b1R,traj.b1I); }
+  let rm = 0; if (S.showEx) rm = Math.max(rm, traj._rex); if (S.show1) rm = Math.max(rm, traj._r1);
+  const R = Math.min(Math.max(rm, 1e-9)*1.15, 1.3), sc = (size/2 - 8)/R;
+  const X = x => cx + x*sc, Y = y => cy - y*sc;
+  ctx.save(); ctx.beginPath(); ctx.rect(cx-size/2, cy-size/2, size, size); ctx.clip();
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(X(-R),cy); ctx.lineTo(X(R),cy); ctx.moveTo(cx,Y(-R)); ctx.lineTo(cx,Y(R)); ctx.stroke();
+  ctx.strokeStyle = C.muted; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.arc(cx, cy, sc, 0, 2*Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  const M = {X, Y};
+  const path = (a, b, col, dash) => {
+    poly(ctx, M, i=>a[i], i=>b[i], 0, NT, col, 1, dash, 0.15);
+    poly(ctx, M, i=>a[i], i=>b[i], 0, k, col, 2, dash, 1);
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(a[k]), Y(b[k]), 5, 0, 2*Math.PI); ctx.fill();
+  };
+  if (S.show1 && traj.direct) path(traj.b1R, traj.b1I, C.first, [6,4]);
+  if (S.showEx) path(traj.bR, traj.bI, C.ex, []);
+  ctx.restore();
+  ctx.fillStyle = C.muted; ctx.font=FONT;
+  const n = String(S.target+1);
+  rich(ctx, [['Re c'],[n,'sub']], cx+size/2-2, cy+14, 'right', FS, C.muted);
+  rich(ctx, [['Im c'],[n,'sub']], cx+6, cy-size/2+12, 'left', FS, C.muted);
+  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText('half-width of view: ' + R.toPrecision(2), w/2, h-2);
+}
+
+function drawSpectrum(k){
+  const {ctx,w,h} = setup($('cvS'));
+  if (!spec || spec.done < 2){ ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.fillText('computing…', w/2, h/2); return; }
+  const NW = spec.done, off = i => i*(NT+1)+k, tc = k*S.tmax/NT, n = String(S.target+1);
+  const rw = useRWA() ? Float64Array.from(spec.ws, x=>tc < S.ton ? 0 : rabi(S.V0, x, tc - S.ton)) : null;
+  let m = 0;
+  for (let i=0;i<NW;i++){
+    if (S.showEx) m = Math.max(m, spec.ex[off(i)]);
+    if (S.show1) m = Math.max(m, spec.f1[off(i)]);
+    if (rw) m = Math.max(m, rw[i]);
+  }
+  const ymax = m > 0 ? Math.min(m*1.12, 1.6) : 1;
+  const M = axes(ctx, w, h, {xmin:0, xmax:spec.WM, ymin:0, ymax, xlabel:'drive frequency ω', ylabel:[['P'],[n,'sub'],['(ω; t)']]});
+  clip(ctx, M);
+  for (let j=1;j<S.nLev;j++){
+    if (S.E[j] > spec.WM) continue;
+    const isT = j === S.target;
+    vline(ctx, M, S.E[j], isT ? C.muted : C.axis, isT ? [] : [4,4], S.nLev === 2 ? 'ω₂₁' : lab(j));
+  }
+  if (S.nLev > 2 && W0()/2 < spec.WM) vline(ctx, M, W0()/2, C.axis, [1,3], '2-photon', true);
+  if (tc > 0){
+    const dw = 2*Math.PI/tc;
+    if (W0()-dw > 0) vline(ctx, M, W0()-dw, C.muted, [3,4]);
+    if (W0()+dw < spec.WM) vline(ctx, M, W0()+dw, C.muted, [3,4]);
+  }
+  vline(ctx, M, S.w, C.drive, [2,3], 'ω', true);
+  const x = i => spec.ws[i];
+  const items = [];
+  if (rw){ poly(ctx, M, x, i=>rw[i], 0, NW-1, C.rwa, 2, [2,3]); items.push({label:'Rabi (RWA)', color:C.rwa, dash:[2,3]}); }
+  if (S.show1){ poly(ctx, M, x, i=>spec.f1[off(i)], 0, NW-1, C.first, 2, [7,4]); items.push({label:'1st order', color:C.first, dash:[7,4]}); }
+  if (S.showEx){ poly(ctx, M, x, i=>spec.ex[off(i)], 0, NW-1, C.ex, 2.2, []); items.push({label:'exact', color:C.ex}); }
+  ctx.restore();
+  legend(ctx, M.R-8, M.T+12, items.reverse());
+  if (spec.done < spec.NW){
+    ctx.fillStyle = C.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('computing… ' + Math.round(100*spec.done/spec.NW) + '%', M.L+8, M.T+6);
+  }
+}
+
+function readouts(k){
+  const t = k*S.tmax/NT, pe = traj.Pex[k], p1 = traj.P1[k];
+  $('rt').textContent = t.toFixed(2);
+  const f = v => v < 1e-3 && v > 0 ? v.toExponential(3) : v.toFixed(4);
+  $('rex').textContent = f(pe); $('r1').textContent = f(p1);
+  const err = pe > 1e-14 ? Math.abs(p1-pe)/pe : 0;
+  $('rerr').textContent = k === 0 ? '—' : (100*err).toFixed(1) + '%';
+  $('rdel').textContent = (S.w - W0()).toFixed(3);
+  const b = $('badge');
+  if (!traj.direct){ b.textContent = lab(S.target) + ' is not coupled to |1⟩ directly: zero in 1st order'; b.style.color = 'var(--warn)'; }
+  else if (k === 0){ b.textContent = 'start'; b.style.color = 'var(--c-muted)'; }
+  else if (err < 0.1){ b.textContent = '1st order is accurate'; b.style.color = 'var(--ok)'; }
+  else if (err < 0.3){ b.textContent = '1st order deviating'; b.style.color = 'var(--warn)'; }
+  else { b.textContent = '1st order has failed'; b.style.color = 'var(--bad)'; }
+  $('tv').textContent = t.toFixed(1);
+}
+
+/* ---------- controls ---------- */
+function buildLevelControls(){
+  let html = '';
+  for (let n=1;n<S.nLev;n++){
+    html += `<div class="ctl"><label><span>ω<sub>${n+1}1</sub> = E<sub>${n+1}</sub> − E<sub>1</sub></span> <b id="Ev${n}"></b></label>` +
+            `<input id="E${n}" type="range" min="0.1" max="4" step="0.005"></div>`;
+  }
+  $('levSliders').innerHTML = html;
+  for (let n=1;n<S.nLev;n++) $('E'+n).oninput = e => { S.E[n] = +e.target.value; syncLabels(); recompute(); };
+  let opts = '';
+  for (let n=1;n<S.nLev;n++) opts += `<option value="${n}">${lab(n)}</option>`;
+  $('target').innerHTML = opts;
+}
+function syncLabels(){
+  $('V0v').textContent = S.V0 < 0.01 ? S.V0.toPrecision(2) : S.V0.toPrecision(3);
+  $('wv').textContent = S.w.toFixed(3);
+  $('tauv').textContent = S.tau.toFixed(1);
+  $('tmaxv').textContent = S.tmax;
+  $('spv').textContent = S.speed + '×';
+  $('tauBox').classList.toggle('hidden', S.env !== 'pulse');
+  $('tonv').textContent = S.ton.toFixed(1);
+  $('Tv').textContent = S.T === 0 ? '0 (sudden)' : S.T.toFixed(1);
+  $('tonBox').classList.toggle('hidden', S.env !== 'cw');
+  $('TBox').classList.toggle('hidden', S.env !== 'cw');
+  $('ton').max = S.tmax;
+  $('nLevv').textContent = S.nLev;
+  for (let n=1;n<S.nLev;n++){ const el = $('Ev'+n); if (el) el.textContent = S.E[n].toFixed(3); }
+  for (const id of ['coupBox','spacingBtns','targetBox']) $(id).classList.toggle('hidden', S.nLev === 2);
+  $('rwaBox').classList.toggle('hidden', S.nLev !== 2);
+  document.querySelectorAll('.tgt').forEach(el => el.textContent = S.target + 1);
+}
+function syncInputs(){
+  $('env').value = S.env; $('V0').value = Math.log10(S.V0); $('w').value = S.w;
+  $('tau').value = S.tau; $('tmax').value = S.tmax; $('speed').value = S.speed;
+  $('ton').max = S.tmax; $('ton').value = S.ton; $('T').value = S.T;
+  $('showEx').checked = S.showEx; $('show1').checked = S.show1; $('showRWA').checked = S.showRWA;
+  $('nLev').value = S.nLev; $('coup').value = S.coup;
+  buildLevelControls();
+  for (let n=1;n<S.nLev;n++) $('E'+n).value = S.E[n];
+  $('target').value = S.target;
+  syncLabels();
+}
+$('env').onchange = e => { S.env = e.target.value; syncLabels(); recompute(); };
+$('V0').oninput = e => { S.V0 = Math.pow(10, +e.target.value); syncLabels(); recompute(); };
+$('w').oninput = e => { S.w = +e.target.value; syncLabels(); recompute(); };
+$('tau').oninput = e => { S.tau = +e.target.value; syncLabels(); recompute(); };
+$('tmax').oninput = e => { S.tmax = +e.target.value; S.ton = Math.min(S.ton, S.tmax); syncLabels(); $('ton').value = S.ton; recompute(); };
+$('ton').oninput = e => { S.ton = +e.target.value; syncLabels(); recompute(); };
+$('T').oninput = e => { S.T = +e.target.value; syncLabels(); recompute(); };
+$('nLev').oninput = e => {
+  S.nLev = +e.target.value;
+  for (let n=1;n<S.nLev;n++) if (!(S.E[n] > 0)) S.E[n] = n*S.E[1];
+  if (S.target >= S.nLev) S.target = S.nLev - 1;
+  syncInputs(); recompute();
+};
+$('coup').onchange = e => { S.coup = e.target.value; syncLabels(); recompute(); };
+$('target').onchange = e => { S.target = +e.target.value; syncLabels(); recompute(); };
+$('eqSp').onclick = () => { for (let n=2;n<6;n++) S.E[n] = Math.min(4, n*S.E[1]); syncInputs(); recompute(); };
+$('anh').onclick = () => { for (let n=2;n<6;n++) S.E[n] = Math.min(4, n*S.E[1] - 0.05*n*(n-1)); syncInputs(); recompute(); };
+$('showEx').onchange = e => S.showEx = e.target.checked;
+$('show1').onchange = e => S.show1 = e.target.checked;
+$('showRWA').onchange = e => S.showRWA = e.target.checked;
+initPlayback(S, NT, PERIOD);
+
+const TWO = {nLev:2, E:[0,1,2,3,4,5], coup:'ladder', target:1};
+const PRESETS = {
+  weak:      {...TWO, env:'cw', V0:0.01, w:1, tmax:100, ton:0, T:0, showRWA:false},
+  off:       {...TWO, env:'cw', V0:0.02, w:1.15, tmax:150, ton:0, T:0, showRWA:false},
+  strong:    {...TWO, env:'cw', V0:0.08, w:1, tmax:150, ton:0, T:0, showRWA:true},
+  static:    {...TWO, env:'cw', V0:0.05, w:0, tmax:60, ton:10, T:0, showRWA:false},
+  ramp:      {...TWO, env:'cw', V0:0.05, w:0, tmax:100, ton:10, T:40, showRWA:false},
+  sudden:    {...TWO, env:'pulse', V0:0.2, w:0, tau:0.5, tmax:20},
+  adiabatic: {...TWO, env:'pulse', V0:0.2, w:0, tau:3, tmax:30},
+  pi:        {...TWO, env:'pulse', V0:Math.PI/(Math.sqrt(2*Math.PI)*5), w:1, tau:5, tmax:60},
+  twolines:  {env:'cw', ton:0, T:0, nLev:3, E:[0,1,1.5,3,4,5], coup:'all', target:1, V0:0.02, w:1, tmax:150},
+  ladder3:   {env:'cw', ton:0, T:0, nLev:3, E:[0,1,2,3,4,5], coup:'ladder', target:2, V0:0.03, w:1, tmax:300},
+  anharm:    {env:'cw', ton:0, T:0, nLev:4, E:[0,1,1.9,2.7,4,5], coup:'ladder', target:1, V0:0.03, w:1, tmax:300},
+  twophoton: {env:'cw', ton:0, T:0, nLev:3, E:[0,1,2.2,3,4,5], coup:'ladder', target:2, V0:0.05, w:1.1, tmax:600},
+  ho:        {env:'cw', ton:0, T:0, nLev:6, E:[0,1,2,3,4,5], coup:'sqrt', target:1, V0:0.02, w:1, tmax:150},
+};
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+  Object.assign(S, PRESETS[b.dataset.p]); S.E = S.E.slice(); S.k = 0; syncInputs(); recompute(); setPlaying(true);
+});
+
+/* ---------- start ---------- */
+initThemeNotes();
+syncInputs();
+recompute();
+startLoop([['cvP',drawP],['cvV',drawV],['cvL',drawLevels],['cvC',drawComplex],['cvS',drawSpectrum]], readouts);
+</script>
+</body>
+</html>

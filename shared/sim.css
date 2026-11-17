@@ -1,0 +1,71 @@
+/* Shared look for all simulation pages.
+   Page-specific colour tokens, canvas heights and grid columns stay in each page. */
+:root{
+  --bg:#f5f6fa; --card:#ffffff; --border:#e2e5ee;
+  --c-fg:#1d2433; --c-muted:#6b7385; --c-grid:#eceff5; --c-axis:#a3abbc;
+  --c-ex:#2563eb; --c-first:#e8700a; --c-drive:#9333ea; --c-levelA:#64748b;
+  --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
+}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --card:#171e29; --border:#263142;
+  --c-fg:#e6eaf2; --c-muted:#8b94a7; --c-grid:#222c3b; --c-axis:#4b5568;
+  --c-ex:#60a5fa; --c-first:#fb923c; --c-drive:#c084fc; --c-levelA:#94a3b8;
+  --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--c-fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+
+/* header */
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:10px 20px 0}
+header h1{margin:0;font-size:22px;font-weight:650}
+header p{margin:4px 0 0;color:var(--c-muted);max-width:1000px}
+.hbtns{flex:none;display:flex;gap:8px;align-items:center}
+.hbtns button, .hbtns a{white-space:nowrap}
+a.navlink{color:var(--c-ex);text-decoration:none;font-size:15px;margin-inline-end:6px}
+a.navlink:hover{text-decoration:underline}
+body.notes-off .cap, body.notes-off header p{display:none}
+
+/* layout: sticky sidebar + main area */
+.layout{display:grid;grid-template-columns:330px 1fr;gap:14px;padding:10px 20px 14px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr;padding:12px}}
+.layout > *{min-width:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px}
+.card h2{margin:0 0 6px;font-size:16px;font-weight:600;color:var(--c-muted)}
+aside{display:flex;flex-direction:column;gap:12px;position:sticky;top:10px;max-height:calc(100vh - 20px);overflow-y:auto}
+@media (max-width:900px){aside{position:static;max-height:none}}
+
+/* controls */
+.ctl{margin:10px 0}
+.ctl label{display:flex;justify-content:space-between;font-size:16px}
+.ctl label b{font-variant-numeric:tabular-nums;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--c-ex)}
+select{width:100%;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--c-fg);font:inherit}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--c-fg);cursor:pointer}
+button:hover{border-color:var(--c-ex)}
+button.primary{background:var(--c-ex);color:#fff;border-color:var(--c-ex)}
+.presets button{font-size:15px;padding:5px 10px}
+.checks label{display:flex;align-items:center;gap:6px;font-size:16px;margin:4px 0}
+.sw{display:inline-block;width:18px;height:3px;border-radius:2px;flex:none}
+.readout{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:16px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(odd){color:var(--c-muted)}
+.readout .sep{grid-column:1 / -1;border-top:1px solid var(--border);margin:4px 0}
+.badge{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:999px;font-size:15px;font-weight:600;border:1px solid currentColor}
+.hidden{display:none}
+
+/* main area: --avail is the height left for canvases, so all graphs fit on one screen */
+main{display:flex;flex-direction:column;gap:14px;min-width:0;--avail:calc(100vh - 200px)}
+canvas{width:100%;display:block}
+.grid3{display:grid;gap:14px}
+.grid3 > .card{min-width:0}
+@media (max-width:1200px){.grid3{grid-template-columns:1fr 1fr !important}}
+@media (max-width:700px){.grid3{grid-template-columns:1fr !important}}
+.grid3 canvas{height:max(200px, calc(var(--avail)*0.48))}
+.cap{font-size:15px;color:var(--c-muted);margin:6px 0 0}
+
+/* theory section */
+.theory{columns:2 420px;column-gap:32px}
+.theory > div{break-inside:avoid;margin-bottom:12px}
+.theory h3{margin:0 0 4px;font-size:17px}
+.try li{margin:4px 0}

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fermi's Golden Rule</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<link rel="stylesheet" href="../../shared/sim.css">
+<style>
+:root{ --c-fgr:#16a34a; --c-exp:#9333ea; }
+:root[data-theme="dark"]{ --c-fgr:#4ade80; --c-exp:#c084fc; }
+.ctl{margin:8px 0}
+.checks label{margin:3px 0}
+.readout{gap:2px 12px}
+.badge{border-radius:10px;font-size:14px}
+main{--avail:calc(100vh - 190px)}
+#cvP{height:max(200px, calc(var(--avail)*0.48))}
+.grid3{grid-template-columns:0.9fr 1.3fr 1fr}
+</style>
+</head>
+<body>
+<header>
+  <div>
+  <h1>Fermi's Golden Rule: Decay of a Discrete State into a Quasi-Continuum</h1>
+  <p>A discrete state \(|a\rangle\) (energy \(0\)) is coupled by a harmonic perturbation to a band of \(N\) equally spaced states \(|k\rangle\)
+  of width \(W\) centred at \(\omega_0=1\): a quasi-continuum with level spacing \(\delta\) and density of states \(\rho=1/\delta\).
+  The <b style="color:var(--c-ex)">exact</b> dynamics (diagonalising the Hamiltonian in the rotating frame) is compared with
+  <b style="color:var(--c-first)">first-order perturbation theory</b>, the <b style="color:var(--c-fgr)">golden-rule</b> rate
+  \(\Gamma=2\pi g^2\rho\) and <b style="color:var(--c-exp)">exponential decay</b>. Units: \(\hbar=1\).</p>
+  </div>
+  <div class="hbtns">
+    <a class="navlink" href="index.html">All simulations</a>
+    <a class="navlink" href="td-perturbation-two-level.html">← Two-level system</a>
+    <button id="notes" title="Show or hide the explanatory captions"></button>
+    <button id="theme" title="Toggle light / dark theme"></button>
+  </div>
+</header>
+
+<div class="layout">
+<aside>
+  <div class="card">
+    <h2>Presets</h2>
+    <div class="row presets">
+      <button data-p="golden">Golden-rule regime</button>
+      <button data-p="short">Short times</button>
+      <button data-p="recur">Few levels: recurrence</button>
+      <button data-p="resolved">Resolved levels (Γ &lt; δ)</button>
+      <button data-p="strong">Strong coupling (Γ ~ W)</button>
+      <button data-p="outside">ω outside the band</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Quasi-continuum</h2>
+    <div class="ctl"><label>Number of levels N <b id="Nv"></b></label><input id="N" type="range" min="11" max="601" step="10"></div>
+    <div class="ctl"><label>Bandwidth W <b id="Wv"></b></label><input id="W" type="range" min="0.1" max="3" step="0.05"></div>
+    <h2 style="margin-top:12px">Perturbation</h2>
+    <div class="ctl"><label><span>Coupling g = |V<sub>ka</sub>|</span> <b id="gv"></b></label><input id="g" type="range" min="-4" max="-1" step="0.01"></div>
+    <div class="ctl"><label>Drive frequency ω <b id="wv"></b></label><input id="w" type="range" min="0" max="2.5" step="0.005"></div>
+    <div class="ctl"><label><span>Total time t<sub>max</sub></span> <b id="tmaxv"></b></label><input id="tmax" type="range" min="0.7" max="3.5" step="0.01"></div>
+  </div>
+
+  <div class="card">
+    <h2>Playback</h2>
+    <div class="row">
+      <button id="play" class="primary">Pause</button>
+      <button id="restart">Restart</button>
+    </div>
+    <div class="ctl"><label>Time <b id="tv"></b></label><input id="scrub" type="range" min="0" max="1500" step="1"></div>
+    <div class="ctl"><label>Speed <b id="spv"></b></label><input id="speed" type="range" min="0.25" max="4" step="0.25"></div>
+    <div class="checks">
+      <label><input type="checkbox" id="showEx" checked><span class="sw" style="background:var(--c-ex)"></span>Exact</label>
+      <label><input type="checkbox" id="show1" checked><span class="sw" style="background:var(--c-first)"></span>First order (sum over levels)</label>
+      <label><input type="checkbox" id="showFGR" checked><span class="sw" style="background:var(--c-fgr)"></span>Golden rule 1 − Γt</label>
+      <label><input type="checkbox" id="showExp" checked><span class="sw" style="background:var(--c-exp)"></span>Exponential e<sup>−Γt</sup></label>
+      <label><input type="checkbox" id="logY">Logarithmic P<sub>a</sub> axis</label>
+      <label><input type="checkbox" id="zoom" checked>Zoom distribution on resonance</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Scales</h2>
+    <div class="readout">
+      <span>ρ = 1/δ</span><span id="rrho"></span>
+      <span>Γ = 2πg²ρ</span><span id="rG"></span>
+      <span>1/Γ</span><span id="rtG"></span>
+      <span>t<sub>H</sub> = 2πρ</span><span id="rtH"></span>
+      <span>Γ/δ , W/Γ</span><span id="rratio"></span>
+      <span class="sep"></span><span class="sep" style="display:none"></span>
+      <span>t</span><span id="rt"></span>
+      <span>P<sub>a</sub> exact</span><span id="rex"></span>
+      <span>e<sup>−Γt</sup></span><span id="rexp"></span>
+      <span>P<sub>a</sub> 1st order</span><span id="r1"></span>
+    </div>
+    <span id="badge" class="badge"></span>
+  </div>
+</aside>
+
+<main>
+  <div class="card">
+    <h2>Survival probability P<sub>a</sub>(t) = |c<sub>a</sub>(t)|²</h2>
+    <canvas id="cvP"></canvas>
+    <p class="cap">Probability to still be in the initial state. The golden rule is the linear part of first-order theory; the exact decay is exponential with the golden-rule rate when δ ≪ Γ ≪ W. Dashed markers: 1/Γ and the recurrence (Heisenberg) time t<sub>H</sub> = 2πρ.</p>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <h2>Energy levels</h2>
+      <canvas id="cvL"></canvas>
+      <p class="cap">Disc: population of |a⟩. Each line in the band is one state |k⟩; the coloured part is proportional to its population. The wavy arrow is ħω; the dashed line marks the resonant energy.</p>
+    </div>
+    <div class="card">
+      <h2>Final-state distribution |c<sub>k</sub>(t)|²</h2>
+      <canvas id="cvD"></canvas>
+      <p class="cap">Population of each |k⟩ vs. the energy mismatch Δ<sub>k</sub> = E<sub>k</sub> − ω. First order gives sin²(Δt/2)/Δ² of width ~2π/t; the exact result saturates into a Lorentzian of width Γ (dotted).</p>
+    </div>
+    <div class="card">
+      <h2>Instantaneous decay rate</h2>
+      <canvas id="cvR"></canvas>
+      <p class="cap">Exact: −d ln P<sub>a</sub>/dt. First order: dP<sub>out</sub>/dt = Σ 2g² sin(Δ<sub>k</sub>t)/Δ<sub>k</sub>. Both start at zero (quadratic start), approach the constant golden-rule rate Γ, and deviate near t<sub>H</sub>.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Theory</h2>
+    <div class="theory">
+      <div>
+        <h3>Model</h3>
+        A state \(|a\rangle\) with \(E_a=0\) and a band \(|k\rangle\), \(E_k=\omega_0-\tfrac W2+k\delta\), \(k=0,\dots,N-1\), \(\delta=W/(N-1)\).
+        The perturbation \(V(t)=2g\cos\omega t\) couples \(|a\rangle\) to every \(|k\rangle\). Keeping the resonant (rotating-wave) term,
+        $$i\dot c_a=g\sum_k e^{-i\Delta_kt}c_k,\qquad i\dot c_k=g\,e^{i\Delta_kt}c_a,\qquad \Delta_k=E_k-E_a-\omega .$$
+        In the rotating frame the Hamiltonian is time independent, so the exact solution follows from its eigenvalues
+        \(\lambda\), the roots of \(\lambda=\sum_k g^2/(\lambda-\Delta_k)\).
+      </div>
+      <div>
+        <h3>First order</h3>
+        $$|c_k^{(1)}(t)|^2=4g^2\,\frac{\sin^2(\Delta_kt/2)}{\Delta_k^2},\qquad P_a^{(1)}=1-\sum_k|c_k^{(1)}|^2 .$$
+        For \(t\gg2\pi/W\) the peak (height \(g^2t^2\), width \(\sim2\pi/t\)) fits inside the band and
+        \(\frac{\sin^2(\Delta t/2)}{\Delta^2}\to\frac{\pi t}{2}\delta(\Delta)\). Replacing \(\sum_k\to\int\rho\,dE\):
+      </div>
+      <div>
+        <h3>Fermi's golden rule</h3>
+        $$P_{out}(t)=\Gamma t,\qquad \Gamma=\frac{2\pi}{\hbar}\,|V_{ka}|^2\,\rho(E_a+\hbar\omega).$$
+        A constant transition <i>rate</i>, even though every single \(|c_k|^2\) oscillates. Valid when
+        $$\frac{2\pi\hbar}{W}\ll t\ll\frac1\Gamma,\ t_H,\qquad\text{i.e.}\quad \delta\ll\hbar\Gamma\ll W .$$
+      </div>
+      <div>
+        <h3>Beyond first order</h3>
+        <b>Wigner–Weisskopf:</b> the exact survival probability is \(P_a=e^{-\Gamma t}\) and the final distribution is the Lorentzian
+        \(|c_k(\infty)|^2=g^2/(\Delta_k^2+\Gamma^2/4)\): the decaying level acquires the width \(\hbar\Gamma\).<br>
+        <b>Short times</b> (\(t\lesssim2\pi/W\)): \(P_{out}\approx Ng^2t^2\), quadratic, not linear.<br>
+        <b>Recurrence:</b> a discrete band has a finite memory. At \(t_H=2\pi\rho\) all phases \(e^{-ik\delta t}\) realign and population returns to \(|a\rangle\).
+      </div>
+    </div>
+    <h3>Things to try</h3>
+    <ul class="try">
+      <li><b>Golden-rule regime</b>: the exact curve follows e<sup>−Γt</sup>, while first order and 1 − Γt agree only for t ≪ 1/Γ. Switch on the log axis: the exact decay is a straight line.</li>
+      <li><b>Short times</b>: the decay starts quadratically. The rate panel shows how the rate builds up from 0 to Γ over a time ~2π/W.</li>
+      <li>Double g: does Γ change by a factor 4? Double N at fixed W (ρ doubles): what happens to Γ? To keep the physics fixed as N → ∞, how must g scale?</li>
+      <li><b>Few levels</b>: watch the revival at t<sub>H</sub> = 2πρ. Increase N and the revival moves out: a true continuum has no memory.</li>
+      <li>Watch the distribution panel: the sinc² shrinks as 2π/t until its width reaches Γ, then it freezes into a Lorentzian.</li>
+      <li><b>Resolved levels</b>: with Γ &lt; δ only one level is resonant and the system Rabi-oscillates. There is no decay and no golden rule.</li>
+      <li>Move ω out of the band (ρ = 0, no decay), or close to a band edge. What does the golden rule predict there, and what really happens?</li>
+      <li><b>Strong coupling</b>: Γ comparable to W. The decay is no longer exponential and part of the population stays in |a⟩ (a bound state forms outside the band).</li>
+    </ul>
+  </div>
+</main>
+</div>
+
+<script src="../../shared/sim.js"></script>
+<script>
+"use strict";
+addColors('fgr', 'exp');
+const EC = 1;       // band centre
+const NT = 1500;     // recorded time points
+const PERIOD = 12;   // seconds per full run at speed 1
+
+const S = {N:301, W:1, g:0.00515, w:1, tmax:120, speed:1,
+           showEx:true, show1:true, showFGR:true, showExp:true, logY:false, zoom:true, playing:true, k:0};
+
+/* ---------- physics ---------- */
+let M = null;   // model: energies, eigen-decomposition, time series
+
+function bisect(f, lo, hi){
+  for (let i=0;i<200;i++){
+    const mid = 0.5*(lo+hi);
+    if (mid <= lo || mid >= hi) break;
+    if (f(mid) < 0) lo = mid; else hi = mid;
+  }
+  return 0.5*(lo+hi);
+}
+
+function build(){
+  const N = S.N, W = S.W, g = S.g, g2 = g*g, w = S.w;
+  const dl = W/(N-1), E = new Float64Array(N), D = new Float64Array(N);
+  for (let k=0;k<N;k++){ E[k] = EC - W/2 + k*dl; D[k] = E[k] - w; }
+  // eigenvalues of the arrowhead Hamiltonian: f(l) = l - sum g^2/(l - D_k) = 0, one root between consecutive poles
+  const f = l => { let s = 0; for (let k=0;k<N;k++) s += g2/(l - D[k]); return l - s; };
+  const lam = new Float64Array(N+1);
+  let lo = D[0] - 1; while (f(lo) > 0) lo = D[0] - 2*(D[0]-lo);
+  lam[0] = bisect(f, lo, D[0]);
+  for (let j=0;j<N-1;j++) lam[j+1] = bisect(f, D[j], D[j+1]);
+  let hi = D[N-1] + 1; while (f(hi) < 0) hi = D[N-1] + 2*(hi-D[N-1]);
+  lam[N] = bisect(f, D[N-1], hi);
+  // eigenvectors: v_a = w_n, v_k = g/(l_n - D_k) w_n.   c_a(t) = sum w_n^2 e^{-i l t},  c_k(t) = sum v_k v_a e^{-i l t}
+  const wa = new Float64Array(N+1), VT = new Float64Array(N*(N+1));
+  for (let n=0;n<=N;n++){
+    let s = 1;
+    for (let k=0;k<N;k++){ const u = g/(lam[n]-D[k]); s += u*u; }
+    const w2 = 1/s; wa[n] = w2;
+    for (let k=0;k<N;k++) VT[k*(N+1)+n] = g/(lam[n]-D[k])*w2;
+  }
+  // golden-rule rate
+  const Eres = w;  // E_a + omega with E_a = 0
+  const inBand = Eres >= E[0]-dl/2 && Eres <= E[N-1]+dl/2;
+  const rho = 1/dl, Gam = inBand ? 2*Math.PI*g2*rho : 0;
+  // time series
+  const H = S.tmax/NT;
+  const Pa = new Float64Array(NT+1), P1 = new Float64Array(NT+1), R1 = new Float64Array(NT+1), Rex = new Float64Array(NT+1);
+  for (let i=0;i<=NT;i++){
+    const t = i*H;
+    let re = 0, im = 0;
+    for (let n=0;n<=N;n++){ re += wa[n]*Math.cos(lam[n]*t); im -= wa[n]*Math.sin(lam[n]*t); }
+    Pa[i] = re*re + im*im;
+    let out = 0, rate = 0;
+    for (let k=0;k<N;k++){
+      const d = D[k];
+      if (Math.abs(d) < 1e-12){ out += g2*t*t; rate += 2*g2*t; }
+      else { const s = Math.sin(d*t/2); out += 4*g2*s*s/(d*d); rate += 2*g2*Math.sin(d*t)/d; }
+    }
+    P1[i] = 1 - out; R1[i] = rate;
+  }
+  for (let i=0;i<=NT;i++){
+    if (i === 0){ Rex[i] = 0; continue; }
+    const a = Pa[Math.max(i-1,0)], b = Pa[Math.min(i+1,NT)];
+    const span = (Math.min(i+1,NT) - Math.max(i-1,0))*H;
+    Rex[i] = (a > 1e-4 && b > 1e-4) ? -(Math.log(b) - Math.log(a))/span : NaN;
+  }
+  M = {N, W, g, w, dl, E, D, lam, wa, VT, rho, Gam, inBand, tH:2*Math.PI*rho, H, Pa, P1, R1, Rex, ck:null, ckIdx:-1};
+}
+
+// exact |c_k(t)|^2 for all k at time index i (cached)
+function ckAt(i){
+  if (M.ckIdx === i) return M.ck;
+  const N = M.N, t = i*M.H, cr = new Float64Array(N+1), ci = new Float64Array(N+1);
+  for (let n=0;n<=N;n++){ cr[n] = Math.cos(M.lam[n]*t); ci[n] = -Math.sin(M.lam[n]*t); }
+  const P = new Float64Array(N);
+  for (let k=0;k<N;k++){
+    let sr = 0, si = 0; const off = k*(N+1);
+    for (let n=0;n<=N;n++){ const v = M.VT[off+n]; sr += v*cr[n]; si += v*ci[n]; }
+    P[k] = sr*sr + si*si;
+  }
+  M.ck = P; M.ckIdx = i;
+  return P;
+}
+
+let buildTimer = null;
+function rebuild(){   // debounced: large N takes a few hundred ms
+  clearTimeout(buildTimer);
+  buildTimer = setTimeout(() => { build(); syncReadouts(); }, 120);
+}
+
+/* ---------- panels ---------- */
+const tOf = i => i*M.H;
+
+function drawP(i){
+  const {ctx,w,h} = setup($('cvP'));
+  const lg = S.logY, ty = v => lg ? (v > 0 ? Math.log10(v) : NaN) : v;
+  let ymin = 0, ymax = 1.05;
+  if (lg){
+    let m = 1; for (let j=0;j<=NT;j++) if (M.Pa[j] > 0) m = Math.min(m, M.Pa[j]);
+    if (S.showExp && M.Gam > 0) m = Math.min(m, Math.exp(-M.Gam*S.tmax));
+    ymin = Math.max(-6, Math.floor(Math.log10(Math.max(m, 1e-12)))); ymax = 0.05;
+  }
+  const A = axes(ctx, w, h, {xmin:0, xmax:S.tmax, ymin, ymax, log:lg, xlabel:'t', ylabel:[['P'],['a','sub'],['(t)']]});
+  clip(ctx, A);
+  if (M.Gam > 0 && 1/M.Gam < S.tmax) vline(ctx, A, 1/M.Gam, C.muted, [3,4], '1/Γ', true);
+  if (M.tH < S.tmax) vline(ctx, A, M.tH, C.muted, [3,4], 't_H = 2πρ', true);
+  const tc = tOf(i), items = [];
+  const fgr = j => ty(1 - M.Gam*tOf(j)), ex = j => ty(Math.exp(-M.Gam*tOf(j)));
+  const ser = [];
+  if (S.showFGR) ser.push({f:fgr, color:C.fgr, dash:[8,5], label:'golden rule 1 − Γt'});
+  if (S.showExp) ser.push({f:ex, color:C.exp, dash:[2,3], label:'exp(−Γt)'});
+  if (S.show1) ser.push({f:j=>ty(M.P1[j]), color:C.first, dash:[7,4], label:'1st order'});
+  if (S.showEx) ser.push({f:j=>ty(M.Pa[j]), color:C.ex, dash:[], label:'exact'});
+  for (const s of ser){
+    poly(ctx, A, tOf, s.f, 0, NT, s.color, 1.5, s.dash, 0.25);
+    poly(ctx, A, tOf, s.f, 0, i, s.color, 2.4, s.dash, 1);
+  }
+  vline(ctx, A, tc, C.muted, []);
+  ctx.restore();
+  legend(ctx, A.R-8, A.T+14, ser.slice().reverse());
+}
+
+function drawLevels(i){
+  const {ctx,w,h} = setup($('cvL'));
+  const N = M.N, lo = M.E[0], hi = M.E[N-1];
+  const Emin = Math.min(0, lo), Emax = Math.max(hi, S.w, 0), span = (Emax - Emin) || 1;
+  const T = 30, B = h - 40;
+  const Y = E => B - (E - (Emin - 0.06*span))/(span*1.12)*(B-T);
+  const Pa = M.Pa[i], Pk = ckAt(i);
+  // |a>
+  const xa0 = w*0.06, xa1 = w*0.32, xac = (xa0+xa1)/2, ya = Y(0);
+  const rmax = Math.min(28, (xa1-xa0)/2);
+  ctx.globalAlpha = 0.85; ctx.fillStyle = C.levelA;
+  ctx.beginPath(); ctx.arc(xac, ya, rmax*Math.sqrt(Math.max(Pa,0)), 0, 2*Math.PI); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = C.fg; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(xa0, ya); ctx.lineTo(xa1, ya); ctx.stroke();
+  rich(ctx, '|a⟩', xa0, ya - rmax - 28, 'left', FS+2, C.fg);
+  rich(ctx, [['P'],['a','sub'],[' = ' + (100*Pa).toFixed(1) + '%']], xa0, ya - rmax - 10, 'left', FS, C.levelA);
+  // band
+  const xb0 = w*0.60, xb1 = w*0.96;
+  ctx.fillStyle = C.grid; ctx.fillRect(xb0, Y(hi), xb1-xb0, Math.max(1, Y(lo)-Y(hi)));
+  ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.globalAlpha = N > 150 ? 0.35 : 0.7;
+  ctx.beginPath(); for (let k=0;k<N;k++){ const y = Y(M.E[k]); ctx.moveTo(xb0, y); ctx.lineTo(xb1, y); } ctx.stroke();
+  ctx.globalAlpha = 1;
+  let mx = 0, out = 0; for (let k=0;k<N;k++){ mx = Math.max(mx, Pk[k]); out += Pk[k]; }
+  if (mx > 1e-12){
+    ctx.strokeStyle = C.ex; ctx.lineWidth = N > 150 ? 1.5 : 2.5;
+    ctx.beginPath();
+    for (let k=0;k<N;k++){ const f = Pk[k]/mx; if (f < 0.01) continue; const y = Y(M.E[k]); ctx.moveTo(xb0, y); ctx.lineTo(xb0 + f*(xb1-xb0), y); }
+    ctx.stroke();
+  }
+  rich(ctx, '{|k⟩}', (xb0+xb1)/2, Y(hi) - 12, 'center', FS+1, C.fg);
+  rich(ctx, [['P'],['out','sub'],[' = ' + (100*out).toFixed(1) + '%']], (xb0+xb1)/2, Y(lo) + 16, 'center', FS, C.ex);
+  // drive photon
+  const xp = w*0.45, yTop = Y(S.w);
+  ctx.save(); ctx.setLineDash([3,4]); ctx.strokeStyle = C.drive; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(xp, yTop); ctx.lineTo(xb1, yTop); ctx.stroke(); ctx.restore();
+  if (S.w > 0 && ya - yTop > 14){
+    ctx.save(); ctx.strokeStyle = C.drive; ctx.lineWidth = 2;
+    const ph = performance.now()/120;
+    ctx.beginPath();
+    for (let y=ya; y>=yTop+8; y-=1){ const x = xp + 5*Math.sin((ya-y)/5 - ph); y === ya ? ctx.moveTo(x,y) : ctx.lineTo(x,y); }
+    ctx.stroke();
+    ctx.fillStyle = C.drive; ctx.beginPath(); ctx.moveTo(xp, yTop); ctx.lineTo(xp-6, yTop+10); ctx.lineTo(xp+6, yTop+10); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    rich(ctx, 'ħω', xp - 10, (ya+yTop)/2, 'right', FS+2, C.drive);
+  }
+}
+
+function drawDist(i){
+  const {ctx,w,h} = setup($('cvD'));
+  const N = M.N, D = M.D, g2 = M.g*M.g, t = tOf(i), G = M.Gam;
+  let xmin, xmax;
+  const zoomable = S.zoom && G > 0 && M.inBand;
+  if (zoomable){
+    const half = Math.min(Math.max(10*G, 20*M.dl, 2*2*Math.PI/S.tmax), M.W);
+    xmin = -half; xmax = half;
+  } else {
+    xmin = Math.min(D[0], 0); xmax = Math.max(D[N-1], 0);
+    const pad = 0.05*(xmax-xmin || 1); xmin -= pad; xmax += pad;
+  }
+  const Pk = ckAt(i);
+  const first = k => { const d = D[k]; if (Math.abs(d) < 1e-12) return g2*t*t; const s = Math.sin(d*t/2); return 4*g2*s*s/(d*d); };
+  let m = 0;
+  for (let k=0;k<N;k++){
+    if (D[k] < xmin || D[k] > xmax) continue;
+    if (S.showEx) m = Math.max(m, Pk[k]);
+    if (S.show1 && !S.showEx) m = Math.max(m, first(k));
+  }
+  if (S.showExp && G > 0 && M.inBand && !S.showEx && !S.show1) m = Math.max(m, g2/(G*G/4));
+  const ymax = m > 0 ? m*1.25 : 1;
+  const A = axes(ctx, w, h, {xmin, xmax, ymin:0, ymax, xlabel:[['Δ'],['k','sub'],[' = E'],['k','sub'],[' − ω']], ylabel:[['|c'],['k','sub'],['|²']]});
+  clip(ctx, A);
+  const eps = 0.01*(xmax-xmin);
+  if (D[0] > xmin + eps) vline(ctx, A, D[0], C.muted, [2,3], 'band edge', true);
+  if (D[N-1] < xmax - eps) vline(ctx, A, D[N-1], C.muted, [2,3]);
+  vline(ctx, A, 0, C.drive, [3,4]);
+  const items = [];
+  if (S.showExp && G > 0 && M.inBand){
+    const NL = 400, xs = j => xmin + (xmax-xmin)*j/NL;
+    poly(ctx, A, xs, j => g2/(xs(j)*xs(j) + G*G/4), 0, NL, C.exp, 1.8, [2,3]);
+    items.push({label:'Lorentzian (t → ∞)', color:C.exp, dash:[2,3]});
+  }
+  if (S.show1){
+    const ks = []; for (let k=0;k<N;k++) if (D[k] >= xmin && D[k] <= xmax) ks.push(k);
+    poly(ctx, A, j => D[ks[j]], j => first(ks[j]), 0, ks.length-1, C.first, 1.8, [6,4]);
+    items.push({label:'1st order', color:C.first, dash:[6,4]});
+  }
+  if (S.showEx){
+    ctx.strokeStyle = C.ex; ctx.lineWidth = Math.max(1, Math.min(4, 0.6*(A.R-A.L)/Math.max(1,(xmax-xmin)/M.dl)));
+    ctx.beginPath();
+    for (let k=0;k<N;k++){ if (D[k] < xmin || D[k] > xmax) continue; const x = A.X(D[k]); ctx.moveTo(x, A.Y(0)); ctx.lineTo(x, A.Y(Pk[k])); }
+    ctx.stroke();
+    items.push({label:'exact (one bar per level)', color:C.ex});
+  }
+  ctx.restore();
+  legend(ctx, A.R-8, A.T+14, items.reverse());
+}
+
+function drawRate(i){
+  const {ctx,w,h} = setup($('cvR'));
+  const G = M.Gam;
+  let ref = G;
+  if (!(ref > 0)){ ref = 0; for (let j=0;j<=NT;j++) if (isFinite(M.R1[j])) ref = Math.max(ref, Math.abs(M.R1[j])); ref = ref || 1e-3; }
+  const A = axes(ctx, w, h, {xmin:0, xmax:S.tmax, ymin:-0.6*ref, ymax:2.2*ref, xlabel:'t', ylabel:'decay rate', l:72});
+  clip(ctx, A);
+  hline(ctx, A, 0, C.axis, []);
+  if (G > 0) hline(ctx, A, G, C.fgr, [8,5], 'Γ (golden rule)');
+  if (M.tH < S.tmax) vline(ctx, A, M.tH, C.muted, [3,4], 't_H', true);
+  const ser = [];
+  if (S.show1) ser.push({a:M.R1, color:C.first, dash:[7,4], label:'1st order'});
+  if (S.showEx) ser.push({a:M.Rex, color:C.ex, dash:[], label:'exact'});
+  for (const s of ser){
+    poly(ctx, A, tOf, j => s.a[j], 0, NT, s.color, 1.3, s.dash, 0.25);
+    poly(ctx, A, tOf, j => s.a[j], 0, i, s.color, 2.2, s.dash, 1);
+  }
+  vline(ctx, A, tOf(i), C.muted, []);
+  ctx.restore();
+  legend(ctx, A.R-8, A.T+14, ser.slice().reverse());
+}
+
+/* ---------- readouts ---------- */
+const f3 = v => (v === 0 ? '0' : Math.abs(v) < 1e-3 || Math.abs(v) >= 1e4 ? v.toExponential(2) : v.toPrecision(3));
+function regime(){
+  if (!M.inBand) return ['ω outside the band: ρ = 0, so Γ = 0 (no decay)', 'var(--warn)'];
+  const G = M.Gam;
+  if (G < M.dl) return ['Γ < δ: individual levels are resolved, no golden rule', 'var(--bad)'];
+  if (G > 0.15*M.W) return ['Γ is not ≪ W: coupling too strong for the golden rule', 'var(--bad)'];
+  const edge = Math.min(S.w - M.E[0], M.E[M.N-1] - S.w);
+  if (edge < 3*G) return ['resonance close to a band edge: ρ is not constant on the scale Γ', 'var(--warn)'];
+  if (G < 3*M.dl) return ['δ ≪ Γ only marginally satisfied', 'var(--warn)'];
+  return ['δ ≪ Γ ≪ W: golden-rule regime', 'var(--ok)'];
+}
+function syncReadouts(){
+  $('rrho').textContent = f3(M.rho);
+  $('rG').textContent = f3(M.Gam);
+  $('rtG').textContent = M.Gam > 0 ? f3(1/M.Gam) : '∞';
+  $('rtH').textContent = f3(M.tH);
+  $('rratio').textContent = M.Gam > 0 ? f3(M.Gam/M.dl) + ' , ' + f3(M.W/M.Gam) : '—';
+  const [txt, col] = regime(); $('badge').textContent = txt; $('badge').style.color = col;
+}
+function liveReadouts(i){
+  const t = tOf(i);
+  $('rt').textContent = t.toFixed(2);
+  $('rex').textContent = M.Pa[i].toFixed(4);
+  $('rexp').textContent = Math.exp(-M.Gam*t).toFixed(4);
+  $('r1').textContent = M.P1[i].toFixed(4);
+  $('tv').textContent = t.toFixed(1);
+}
+
+/* ---------- controls ---------- */
+function syncLabels(){
+  $('Nv').textContent = S.N; $('Wv').textContent = S.W.toFixed(2);
+  $('gv').textContent = S.g.toPrecision(3); $('wv').textContent = S.w.toFixed(3);
+  $('tmaxv').textContent = S.tmax < 100 ? S.tmax.toFixed(1) : Math.round(S.tmax);
+  $('spv').textContent = S.speed + '×';
+}
+function syncInputs(){
+  $('N').value = S.N; $('W').value = S.W; $('g').value = Math.log10(S.g); $('w').value = S.w;
+  $('tmax').value = Math.log10(S.tmax); $('speed').value = S.speed;
+  for (const id of ['showEx','show1','showFGR','showExp','logY','zoom']) $(id).checked = S[id];
+  syncLabels();
+}
+const onParam = (id, conv) => $(id).oninput = e => { S[id] = conv(+e.target.value); syncLabels(); rebuild(); };
+onParam('N', v => v); onParam('W', v => v); onParam('w', v => v);
+onParam('g', v => Math.pow(10, v)); onParam('tmax', v => Math.pow(10, v));
+for (const id of ['showEx','show1','showFGR','showExp','logY','zoom']) $(id).onchange = e => S[id] = e.target.checked;
+initPlayback(S, NT, PERIOD);
+
+const gFor = (G, N, W) => Math.sqrt(G*(W/(N-1))/(2*Math.PI));   // coupling giving rate G
+const PRESETS = {
+  golden:   {N:301, W:1, w:1, g:gFor(0.05,301,1), tmax:120, logY:false},
+  short:    {N:301, W:1, w:1, g:gFor(0.05,301,1), tmax:15, logY:false},
+  recur:    {N:41,  W:1, w:1, g:gFor(0.1,41,1),   tmax:600, logY:false},
+  resolved: {N:41,  W:1, w:1, g:0.003, tmax:1500, logY:false},
+  strong:   {N:301, W:1, w:1, g:gFor(1,301,1),    tmax:30, logY:false},
+  outside:  {N:301, W:1, w:1.8, g:gFor(0.05,301,1), tmax:120, logY:false},
+};
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+  Object.assign(S, PRESETS[b.dataset.p]); S.k = 0; syncInputs(); build(); syncReadouts(); setPlaying(true);
+});
+
+/* ---------- start ---------- */
+initThemeNotes();
+syncInputs();
+build(); syncReadouts();
+startLoop([['cvP',drawP],['cvL',drawLevels],['cvD',drawDist],['cvR',drawRate]], liveReadouts);
+</script>
+</body>
+</html>
