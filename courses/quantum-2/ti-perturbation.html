@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time-Independent Perturbation Theory</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+<link rel="stylesheet" href="../../shared/sim.css">
+<style>
+:root{ --c-sec:#16a34a; --c-kth:#9333ea; --c-pot:#8a817c; }
+:root[data-theme="dark"]{ --c-sec:#4ade80; --c-kth:#c084fc; --c-pot:#a8a29e; }
+.ctl{margin:8px 0}
+.checks label{margin:3px 0}
+.readout{gap:2px 12px}
+.badge{border-radius:10px;font-size:14px}
+main{--avail:calc(100vh - 190px)}
+#cvE{height:max(220px, calc(var(--avail)*0.48))}
+.grid3{grid-template-columns:1.15fr 1fr 1fr}
+</style>
+</head>
+<body>
+<header>
+  <div>
+  <h1>Time-Independent Perturbation Theory: Energy Levels as the Perturbation Grows</h1>
+  <p>An unperturbed system \(H_0\) (harmonic oscillator or infinite well) gets a perturbation \(\lambda W\).
+  As \(\lambda\) grows, the <b style="color:var(--c-ex)">exact</b> levels (diagonalising \(H_0+\lambda W\)) are compared with
+  <b style="color:var(--c-first)">first-order</b>, <b style="color:var(--c-sec)">second-order</b> and
+  <b style="color:var(--c-kth)">K-th order</b> perturbation theory. Units: \(\hbar=m=1\); oscillator \(\omega=1\); well width \(L=\pi\).</p>
+  </div>
+  <div class="hbtns">
+    <a class="navlink" href="../../index.html">All simulations</a>
+    <a class="navlink" href="td-perturbation-two-level.html">Time-dependent →</a>
+    <button id="notes" title="Show or hide the explanatory captions"></button>
+    <button id="theme" title="Toggle light / dark theme"></button>
+  </div>
+</header>
+
+<div class="layout">
+<aside>
+  <div class="card">
+    <h2>Presets</h2>
+    <div class="row presets">
+      <button data-p="hoLin">Oscillator in a field</button>
+      <button data-p="hoQuad">Stiffer spring</button>
+      <button data-p="anh">Anharmonic x⁴</button>
+      <button data-p="anhStrong">Strong x⁴: divergence</button>
+      <button data-p="stark">Well in a field</button>
+      <button data-p="step">Raised half floor</button>
+      <button data-p="barrier">Barrier in the middle</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>System</h2>
+    <div class="ctl"><label>Unperturbed H<sub>0</sub></label>
+      <select id="sys"><option value="ho">Harmonic oscillator  E⁰ = n + ½</option><option value="box">Infinite well, L = π  E⁰ = n²/2</option></select></div>
+    <div class="ctl"><label>Perturbation W(x)</label><select id="pert"></select></div>
+    <div class="ctl"><label><span>Final strength λ<sub>max</sub></span> <b id="lmaxv"></b></label><input id="lmax" type="range"></div>
+    <div id="bumpBox">
+      <div class="ctl"><label><span>Bump centre x<sub>0</sub></span> <b id="x0v"></b></label><input id="x0" type="range"></div>
+      <div class="ctl"><label>Bump width σ <b id="sigv"></b></label><input id="sig" type="range"></div>
+    </div>
+    <div class="ctl"><label>Level studied</label><select id="lev"></select></div>
+    <div class="ctl"><label>Highest order K <b id="Kv"></b></label><input id="K" type="range" min="1" max="24" step="1"></div>
+  </div>
+
+  <div class="card">
+    <h2>Playback</h2>
+    <div class="row">
+      <button id="play" class="primary">Pause</button>
+      <button id="restart">Restart</button>
+    </div>
+    <div class="ctl"><label>Strength λ <b id="lv"></b></label><input id="scrub" type="range" min="0" max="400" step="1"></div>
+    <div class="ctl"><label>Speed <b id="spv"></b></label><input id="speed" type="range" min="0.25" max="4" step="0.25"></div>
+    <div class="checks">
+      <label><input type="checkbox" id="show1" checked><span class="sw" style="background:var(--c-first)"></span>First order</label>
+      <label><input type="checkbox" id="show2" checked><span class="sw" style="background:var(--c-sec)"></span>Second order</label>
+      <label><input type="checkbox" id="showK" checked><span class="sw" style="background:var(--c-kth)"></span>Order K</label>
+      <label><input type="checkbox" id="allPT">Perturbation curves for all levels</label>
+      <label><input type="checkbox" id="zoom">Zoom on the chosen level</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Level <span id="levName"></span> at the current λ</h2>
+    <div class="readout">
+      <span>λ</span><span id="rl"></span>
+      <span>Exact E</span><span id="rex"></span>
+      <span>E<sup>(0)</sup></span><span id="r0"></span>
+      <span>+ λE<sup>(1)</sup></span><span id="r1"></span>
+      <span>+ λ²E<sup>(2)</sup></span><span id="r2"></span>
+      <span class="sep"></span><span class="sep" style="display:none"></span>
+      <span>Error, 1st order</span><span id="re1"></span>
+      <span>Error, 2nd order</span><span id="re2"></span>
+      <span>Error, order K</span><span id="reK"></span>
+      <span>max |λW<sub>mn</sub>/ΔE|</span><span id="rr"></span>
+    </div>
+    <span id="badge" class="badge"></span>
+  </div>
+</aside>
+
+<main>
+  <div class="card">
+    <h2>Energy levels E<sub>n</sub>(λ)</h2>
+    <canvas id="cvE"></canvas>
+    <p class="cap">Grey: exact levels. For the chosen level, the perturbation series truncated at first, second and K-th order. Play sweeps λ from 0 to λ<sub>max</sub>; the vertical line is the current λ. Each series is a polynomial in λ: good near λ = 0, and it drifts away once the perturbation is not small.</p>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <h2>Potential and wave function</h2>
+      <canvas id="cvW"></canvas>
+      <p class="cap">V(x) = V<sub>0</sub>(x) + λW(x) with the exact levels. The chosen level's wave function is drawn at its energy: exact, unperturbed ψ<sup>(0)</sup>, and first order ψ<sup>(0)</sup> + λψ<sup>(1)</sup> (normalised).</p>
+    </div>
+    <div class="card">
+      <h2>Admixture of unperturbed states</h2>
+      <canvas id="cvM"></canvas>
+      <p class="cap">Coefficients of the chosen state in the unperturbed basis, ⟨m<sup>(0)</sup>|n⟩. First order: λW<sub>mn</sub>/(E<sub>n</sub><sup>(0)</sup> − E<sub>m</sub><sup>(0)</sup>). The bar m = n is ≈ 1 and is cut off; the scale is set by the other bars.</p>
+    </div>
+    <div class="card">
+      <h2>Order by order</h2>
+      <canvas id="cvK"></canvas>
+      <p class="cap">Partial sums E<sup>(0)</sup> + λE<sup>(1)</sup> + … + λ<sup>k</sup>E<sup>(k)</sup> at the current λ, for k = 0…K. A convergent series settles on the exact value (line); a divergent one moves away from it as more terms are added. Points off the scale are drawn as triangles at the edge.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Theory</h2>
+    <div class="theory">
+      <div>
+        <h3>The setup</h3>
+        \(H=H_0+\lambda W\), where the unperturbed problem is solved: \(H_0|n^{(0)}\rangle=E_n^{(0)}|n^{(0)}\rangle\), non-degenerate. Expand
+        $$E_n=E_n^{(0)}+\lambda E_n^{(1)}+\lambda^2E_n^{(2)}+\dots,\qquad |n\rangle=|n^{(0)}\rangle+\lambda|n^{(1)}\rangle+\dots$$
+        and match powers of \(\lambda\) in \(H|n\rangle=E_n|n\rangle\).
+      </div>
+      <div>
+        <h3>First order</h3>
+        $$E_n^{(1)}=W_{nn}=\langle n^{(0)}|W|n^{(0)}\rangle,\qquad |n^{(1)}\rangle=\sum_{m\ne n}\frac{W_{mn}}{E_n^{(0)}-E_m^{(0)}}\,|m^{(0)}\rangle .$$
+        The energy shift is the average of the perturbation in the unperturbed state. The state mixes in its neighbours, most strongly those close in energy.
+      </div>
+      <div>
+        <h3>Second order</h3>
+        $$E_n^{(2)}=\sum_{m\ne n}\frac{|W_{mn}|^2}{E_n^{(0)}-E_m^{(0)}} .$$
+        Levels above push \(n\) down, levels below push it up: <b>level repulsion</b>. The ground state is always lowered at second order.
+      </div>
+      <div>
+        <h3>When is it valid?</h3>
+        All corrections are expansions in
+        $$\left|\frac{\lambda W_{mn}}{E_n^{(0)}-E_m^{(0)}}\right|\ll1 .$$
+        The badge in the sidebar shows the largest such ratio for the chosen level.
+      </div>
+      <div>
+        <h3>Higher orders and the exact answer</h3>
+        With intermediate normalisation \(\langle n^{(0)}|n^{(k)}\rangle=0\),
+        $$E_n^{(k)}=\langle n^{(0)}|W|n^{(k-1)}\rangle,\qquad
+        \langle m^{(0)}|n^{(k)}\rangle=\frac{\langle m^{(0)}|W|n^{(k-1)}\rangle-\sum_{j=1}^{k-1}E_n^{(j)}\langle m^{(0)}|n^{(k-j)}\rangle}{E_n^{(0)}-E_m^{(0)}} .$$
+        Here this recursion and the exact diagonalisation both use the same 40 unperturbed states, so the two are compared fairly.
+      </div>
+      <div>
+        <h3>Worked examples</h3>
+        <b>Oscillator + λx:</b> completing the square, \(E_n=n+\tfrac12-\tfrac{\lambda^2}{2}\) exactly. So \(E^{(1)}=0\), \(E^{(2)}=-\tfrac12\), and all higher orders vanish.<br>
+        <b>Oscillator + λx²/2:</b> \(\omega\to\sqrt{1+\lambda}\), so \(E_n=(n+\tfrac12)\sqrt{1+\lambda}\). This binomial series converges only for \(|\lambda|<1\).<br>
+        <b>Oscillator + λx⁴:</b> \(E_0=\tfrac12+\tfrac34\lambda-\tfrac{21}{8}\lambda^2+\tfrac{333}{16}\lambda^3-\dots\) The coefficients grow factorially and the series diverges for every \(\lambda\neq0\): for \(\lambda<0\) the potential has no bound states (Dyson's argument). It is an asymptotic series.<br>
+        <b>Well + uniform field:</b> \(E^{(1)}=0\) by parity, so the shift starts at \(\lambda^2\).
+      </div>
+    </div>
+    <h3>Things to try</h3>
+    <ul class="try">
+      <li><b>Oscillator in a field</b>: first order gives no shift at all, and second order is already exact for every level. Raise K: nothing changes. Look at the wave function: it is just displaced.</li>
+      <li><b>Stiffer spring</b>: the series works up to λ = 1 and then fails, no matter how large K is. In the order-by-order panel, compare λ = 0.8 with λ = 1.4.</li>
+      <li><b>Anharmonic x⁴</b> at small λ: first order is good, second order much better. Now try the strong preset and raise K from 2 to 24. Adding terms first helps, then makes things worse: an asymptotic series.</li>
+      <li>Second order always lowers the ground state. Check this for every preset with the ground state selected. Which levels go up?</li>
+      <li><b>Well in a field</b>: why is the first-order line flat? Which levels repel each other most strongly, and why?</li>
+      <li><b>Barrier in the middle</b>: the levels with n = 2, 4 hardly move. Look at their wave functions at x = L/2. What do the lowest two levels do at large λ?</li>
+      <li>Watch the admixture bars: which m mix in for each perturbation? Explain from parity, and from \(x=(a+a^\dagger)/\sqrt2\) for the oscillator.</li>
+      <li>Compare the badge value with the actual error in the readouts. Is the criterion |λW<sub>mn</sub>/ΔE| ≪ 1 a good guide?</li>
+    </ul>
+  </div>
+</main>
+</div>
+
+<script src="../../shared/sim.js"></script>
+<script>
+"use strict";
+addColors('sec', 'kth', 'pot');
+const NB = 40;      // basis size (unperturbed states)
+const NT = 400;     // lambda grid: lambda_k = k/NT * lmax
+const PERIOD = 10;  // seconds per sweep at speed 1
+const KMAX = 24;    // highest perturbation order computed
+const NSHOW = 5;    // levels drawn
+const MB = 10;      // bars in the admixture panel
+
+const S = {sys:'ho', pert:'quart', lmax:0.3, x0:0, sig:0.5, lev:0, K:8, speed:1,
+           show1:true, show2:true, showK:true, allPT:false, zoom:true, playing:true, k:0};
+
+const PI = Math.PI;
+const PERTS = {
+  ho: {
+    lin:   {name:'Linear  λx  (uniform field)',         W:x => x,         min:-3,    max:3, step:0.01,  def:1.5},
+    quad:  {name:'Quadratic  λx²/2  (stiffer spring)',  W:x => x*x/2,     min:-0.95, max:3, step:0.01,  def:1.5},
+    quart: {name:'Quartic  λx⁴  (anharmonic)',          W:x => x*x*x*x,   min:0,     max:2, step:0.005, def:0.3},
+    bump:  {name:'Gaussian bump  λ·exp(−(x−x₀)²/2σ²)',  bump:true,        min:-8,    max:8, step:0.05,  def:3,
+            x0:{min:-3, max:3, step:0.05, def:0}, sig:{min:0.1, max:2, step:0.05, def:0.5}},
+  },
+  box: {
+    lin:   {name:'Linear  λ(x − L/2)  (uniform field)', W:x => x - PI/2,  min:-10, max:10, step:0.05, def:3},
+    step:  {name:'Step  λ on the right half',           W:x => x > PI/2 ? 1 : 0, min:-15, max:15, step:0.05, def:5},
+    bump:  {name:'Gaussian bump  λ·exp(−(x−x₀)²/2σ²)',  bump:true,        min:-60, max:60, step:0.5, def:30,
+            x0:{min:0.05, max:0.95, step:0.01, def:0.5}, sig:{min:0.02, max:0.4, step:0.01, def:0.08}},   // x0, σ in units of L
+  },
+};
+const P = () => PERTS[S.sys][S.pert];
+const qn = i => S.sys === 'box' ? i+1 : i;                 // quantum number label of basis index i
+const E0 = i => S.sys === 'box' ? (i+1)*(i+1)/2 : i + 0.5;
+const lamOf = k => k/NT*S.lmax;
+
+/* ---------- symmetric eigen-decomposition (Householder tridiagonalisation + QL, after JAMA) ---------- */
+function eigSym(A, n){   // A: array of rows (modified); returns {d (ascending), V (V[i][j]: component i of eigenvector j)}
+  const V = A, d = new Float64Array(n), e = new Float64Array(n);
+  for (let j=0;j<n;j++) d[j] = V[n-1][j];
+  for (let i=n-1;i>0;i--){
+    let scale = 0, h = 0;
+    for (let k=0;k<i;k++) scale += Math.abs(d[k]);
+    if (scale === 0){
+      e[i] = d[i-1];
+      for (let j=0;j<i;j++){ d[j] = V[i-1][j]; V[i][j] = 0; V[j][i] = 0; }
+    } else {
+      for (let k=0;k<i;k++){ d[k] /= scale; h += d[k]*d[k]; }
+      let f = d[i-1], g = Math.sqrt(h);
+      if (f > 0) g = -g;
+      e[i] = scale*g; h -= f*g; d[i-1] = f - g;
+      for (let j=0;j<i;j++) e[j] = 0;
+      for (let j=0;j<i;j++){
+        f = d[j]; V[j][i] = f; g = e[j] + V[j][j]*f;
+        for (let k=j+1;k<=i-1;k++){ g += V[k][j]*d[k]; e[k] += V[k][j]*f; }
+        e[j] = g;
+      }
+      f = 0;
+      for (let j=0;j<i;j++){ e[j] /= h; f += e[j]*d[j]; }
+      const hh = f/(h+h);
+      for (let j=0;j<i;j++) e[j] -= hh*d[j];
+      for (let j=0;j<i;j++){
+        f = d[j]; g = e[j];
+        for (let k=j;k<=i-1;k++) V[k][j] -= (f*e[k] + g*d[k]);
+        d[j] = V[i-1][j]; V[i][j] = 0;
+      }
+    }
+    d[i] = h;
+  }
+  for (let i=0;i<n-1;i++){
+    V[n-1][i] = V[i][i]; V[i][i] = 1;
+    const h = d[i+1];
+    if (h !== 0){
+      for (let k=0;k<=i;k++) d[k] = V[k][i+1]/h;
+      for (let j=0;j<=i;j++){
+        let g = 0;
+        for (let k=0;k<=i;k++) g += V[k][i+1]*V[k][j];
+        for (let k=0;k<=i;k++) V[k][j] -= g*d[k];
+      }
+    }
+    for (let k=0;k<=i;k++) V[k][i+1] = 0;
+  }
+  for (let j=0;j<n;j++){ d[j] = V[n-1][j]; V[n-1][j] = 0; }
+  V[n-1][n-1] = 1; e[0] = 0;
+  // QL
+  for (let i=1;i<n;i++) e[i-1] = e[i];
+  e[n-1] = 0;
+  let f = 0, tst1 = 0;
+  const eps = Math.pow(2, -52);
+  for (let l=0;l<n;l++){
+    tst1 = Math.max(tst1, Math.abs(d[l]) + Math.abs(e[l]));
+    let m = l;
+    while (m < n){ if (Math.abs(e[m]) <= eps*tst1) break; m++; }
+    if (m > l){
+      let iter = 0;
+      do {
+        if (++iter > 60) break;
+        let g = d[l], p = (d[l+1] - g)/(2*e[l]), r = Math.hypot(p, 1);
+        if (p < 0) r = -r;
+        d[l] = e[l]/(p + r); d[l+1] = e[l]*(p + r);
+        const dl1 = d[l+1];
+        let h = g - d[l];
+        for (let i=l+2;i<n;i++) d[i] -= h;
+        f += h;
+        p = d[m];
+        let c = 1, c2 = c, c3 = c, s = 0, s2 = 0;
+        const el1 = e[l+1];
+        for (let i=m-1;i>=l;i--){
+          c3 = c2; c2 = c; s2 = s;
+          g = c*e[i]; h = c*p; r = Math.hypot(p, e[i]);
+          e[i+1] = s*r; s = e[i]/r; c = p/r;
+          p = c*d[i] - s*g; d[i+1] = h + s*(c*g + s*d[i]);
+          for (let k=0;k<n;k++){ h = V[k][i+1]; V[k][i+1] = s*V[k][i] + c*h; V[k][i] = c*V[k][i] - s*h; }
+        }
+        p = -s*s2*c3*el1*e[l]/dl1; e[l] = s*p; d[l] = c*p;
+      } while (Math.abs(e[l]) > eps*tst1);
+    }
+    d[l] += f; e[l] = 0;
+  }
+  for (let i=0;i<n-1;i++){
+    let k = i, p = d[i];
+    for (let j=i+1;j<n;j++) if (d[j] < p){ k = j; p = d[j]; }
+    if (k !== i){
+      d[k] = d[i]; d[i] = p;
+      for (let j=0;j<n;j++){ const t = V[j][i]; V[j][i] = V[j][k]; V[j][k] = t; }
+    }
+  }
+  return {d, V};
+}
+
+/* ---------- unperturbed basis ---------- */
+function basis(xs){   // NB arrays of phi_i(x)
+  const nx = xs.length, F = Array.from({length:NB}, () => new Float64Array(nx));
+  if (S.sys === 'box'){
+    const c = Math.sqrt(2/PI);
+    for (let i=0;i<NB;i++) for (let j=0;j<nx;j++) F[i][j] = c*Math.sin((i+1)*xs[j]);
+  } else {
+    const c0 = Math.pow(PI, -0.25);
+    for (let j=0;j<nx;j++){
+      const x = xs[j];
+      F[0][j] = c0*Math.exp(-x*x/2);
+      if (NB > 1) F[1][j] = Math.SQRT2*x*F[0][j];
+      for (let n=1;n<NB-1;n++) F[n+1][j] = Math.sqrt(2/(n+1))*x*F[n][j] - Math.sqrt(n/(n+1))*F[n-1][j];
+    }
+  }
+  return F;
+}
+function Wfun(){
+  const p = P();
+  if (!p.bump) return p.W;
+  const x0 = S.sys === 'box' ? S.x0*PI : S.x0, s = S.sys === 'box' ? S.sig*PI : S.sig;
+  return x => Math.exp(-((x-x0)**2)/(2*s*s));
+}
+const linspace = (a, b, n) => { const v = new Float64Array(n); for (let i=0;i<n;i++) v[i] = a + (b-a)*i/(n-1); return v; };
+
+/* ---------- model ---------- */
+let M = null;
+function build(){
+  const box = S.sys === 'box', Wf = Wfun();
+  // matrix elements W_mn by the trapezoid rule on a fine grid (the step gets weight 1/2 at the jump)
+  const NX = box ? 4001 : 2401, xs = box ? linspace(0, PI, NX) : linspace(-12, 12, NX), dx = xs[1]-xs[0];
+  const F = basis(xs), wv = new Float64Array(NX);
+  for (let j=0;j<NX;j++) wv[j] = (box && S.pert === 'step' && Math.abs(xs[j]-PI/2) < 1e-9) ? 0.5 : Wf(xs[j]);
+  wv[0] *= 0.5; wv[NX-1] *= 0.5;
+  const W = Array.from({length:NB}, () => new Float64Array(NB));
+  for (let m=0;m<NB;m++) for (let n=m;n<NB;n++){
+    let s = 0; const a = F[m], b = F[n];
+    for (let j=0;j<NX;j++) s += a[j]*b[j]*wv[j];
+    W[m][n] = W[n][m] = s*dx;
+  }
+  const E0v = Float64Array.from({length:NB}, (_, i) => E0(i));
+
+  // exact: diagonalise H0 + lambda W on the lambda grid
+  const Eex = new Float64Array((NT+1)*NSHOW), Vec = new Float64Array((NT+1)*NSHOW*NB);
+  for (let k=0;k<=NT;k++){
+    const lam = lamOf(k);
+    const A = Array.from({length:NB}, (_, i) => { const r = new Float64Array(NB); for (let j=0;j<NB;j++) r[j] = lam*W[i][j]; r[i] += E0v[i]; return r; });
+    const {d, V} = eigSym(A, NB);
+    for (let i=0;i<NSHOW;i++){
+      Eex[k*NSHOW+i] = d[i];
+      // sign: continuous in lambda (positive overlap with the unperturbed state at lambda = 0)
+      let dot = 0;
+      if (k === 0) dot = V[i][i];
+      else for (let m=0;m<NB;m++) dot += V[m][i]*Vec[((k-1)*NSHOW+i)*NB+m];
+      const sg = dot < 0 ? -1 : 1, o = (k*NSHOW+i)*NB;
+      for (let m=0;m<NB;m++) Vec[o+m] = sg*V[m][i];
+    }
+  }
+
+  // Rayleigh-Schroedinger series to order KMAX for each shown level
+  const PT = [], C1 = [];
+  for (let n=0;n<NSHOW;n++){
+    const Ek = new Float64Array(KMAX+1); Ek[0] = E0v[n];
+    const c = [Float64Array.from({length:NB}, (_, i) => i === n ? 1 : 0)];
+    for (let k=1;k<=KMAX;k++){
+      const prev = c[k-1], Wc = new Float64Array(NB);
+      for (let m=0;m<NB;m++){ let s = 0; for (let j=0;j<NB;j++) s += W[m][j]*prev[j]; Wc[m] = s; }
+      Ek[k] = Wc[n];
+      const ck = new Float64Array(NB);
+      for (let m=0;m<NB;m++){
+        if (m === n) continue;
+        let s = Wc[m];
+        for (let j=1;j<k;j++) s -= Ek[j]*c[k-j][m];
+        ck[m] = s/(E0v[n] - E0v[m]);
+      }
+      c.push(ck);
+    }
+    PT.push(Ek); C1.push(c[1]);
+  }
+
+  // display grid for the wave-function panel
+  const xr = box ? null : Math.sqrt(2*(NSHOW-0.5)) + 1.8;
+  const xd = box ? linspace(0, PI, 500) : linspace(-xr, xr, 500);
+  const Fd = basis(xd), Vd = new Float64Array(xd.length), Wd = new Float64Array(xd.length);
+  for (let j=0;j<xd.length;j++){ Vd[j] = box ? 0 : xd[j]*xd[j]/2; Wd[j] = Wf(xd[j]); }
+
+  let ymin = Infinity, ymax = -Infinity;
+  for (const v of Eex){ ymin = Math.min(ymin, v); ymax = Math.max(ymax, v); }
+  const pad = 0.08*(ymax - ymin || 1);
+  M = {W, E0v, Eex, Vec, PT, C1, xd, Fd, Vd, Wd, ymin:ymin-pad, ymax:ymax+pad};
+  buildCurves();
+}
+const partial = (n, K, lam) => { const e = M.PT[n]; let s = 0, p = 1; for (let j=0;j<=K;j++){ s += e[j]*p; p *= lam; } return s; };
+function buildCurves(){   // truncated series on the lambda grid: orders 1, 2, K
+  M.cur = [1, 2, S.K].map(K => { const a = new Float64Array((NT+1)*NSHOW); for (let k=0;k<=NT;k++) for (let n=0;n<NSHOW;n++) a[k*NSHOW+n] = partial(n, K, lamOf(k)); return a; });
+}
+function ratio(n, lam){   // largest |lambda W_mn / (E_n - E_m)|
+  let r = 0;
+  for (let m=0;m<NB;m++) if (m !== n) r = Math.max(r, Math.abs(lam*M.W[m][n]/(M.E0v[n]-M.E0v[m])));
+  return r;
+}
+
+/* ---------- drawing ---------- */
+const lamRange = () => { let a = Math.min(0, S.lmax), b = Math.max(0, S.lmax); if (b - a < 1e-9) b = a + 1; return [a, b]; };
+const sub = (a, b) => [[a],[String(b),'sub']];
+
+function drawE(k){
+  const {ctx,w,h} = setup($('cvE'));
+  const [x0, x1] = lamRange(), sel = S.lev;
+  let ymin = M.ymin, ymax = M.ymax;
+  if (S.zoom){   // range of the chosen level only
+    ymin = Infinity; ymax = -Infinity;
+    for (let j=0;j<=NT;j++){ const v = M.Eex[j*NSHOW+sel]; ymin = Math.min(ymin, v); ymax = Math.max(ymax, v); }
+    const pad = Math.max(0.3*(ymax - ymin), 0.02*(M.E0v[1] - M.E0v[0]));
+    ymin -= pad; ymax += pad;
+  }
+  const A = axes(ctx, w, h, {xmin:x0, xmax:x1, ymin, ymax, xlabel:'perturbation strength λ', ylabel:'energy E'});
+  clip(ctx, A);
+  const ex = n => j => M.Eex[j*NSHOW+n], cur = (q, n) => j => M.cur[q][j*NSHOW+n];
+  const styles = [{q:0, on:S.show1, color:C.first, dash:[7,4]}, {q:1, on:S.show2, color:C.sec, dash:[2,3]}, {q:2, on:S.showK, color:C.kth, dash:[10,3,2,3]}];
+  for (let n=0;n<NSHOW;n++){
+    if (n === sel) continue;
+    if (S.allPT) for (const s of styles.slice(0,2)) if (s.on) poly(ctx, A, lamOf, cur(s.q, n), 0, NT, s.color, 1.2, s.dash, 0.35);
+    poly(ctx, A, lamOf, ex(n), 0, NT, C.levelA, 1.4, [], 0.35);
+    poly(ctx, A, lamOf, ex(n), 0, k, C.levelA, 2, [], 0.9);
+  }
+  for (const s of styles) if (s.on){
+    poly(ctx, A, lamOf, cur(s.q, sel), 0, NT, s.color, 1.4, s.dash, 0.3);
+    poly(ctx, A, lamOf, cur(s.q, sel), 0, k, s.color, 2.3, s.dash, 1);
+  }
+  poly(ctx, A, lamOf, ex(sel), 0, NT, C.ex, 1.6, [], 0.3);
+  poly(ctx, A, lamOf, ex(sel), 0, k, C.ex, 2.8, [], 1);
+  vline(ctx, A, lamOf(k), C.muted, []);
+  ctx.fillStyle = C.ex; ctx.beginPath(); ctx.arc(A.X(lamOf(k)), A.Y(ex(sel)(k)), 4.5, 0, 2*PI); ctx.fill();
+  ctx.restore();
+  // level labels next to lambda = 0
+  const xl = A.X(0) + (S.lmax >= 0 ? 6 : -6), al = S.lmax >= 0 ? 'left' : 'right';
+  for (let n=0;n<NSHOW;n++){
+    const y = A.Y(M.Eex[n]) - 10;
+    if (y < A.T + 6 || y > A.B - 6) continue;
+    rich(ctx, [['n = ' + qn(n)]], xl, y, al, FS, n === sel ? C.ex : C.muted);
+  }
+  const items = [{label:'exact', color:C.ex}];
+  if (S.show1) items.push({label:'1st order', color:C.first, dash:[7,4]});
+  if (S.show2) items.push({label:'2nd order', color:C.sec, dash:[2,3]});
+  if (S.showK) items.push({label:'order K = ' + S.K, color:C.kth, dash:[10,3,2,3]});
+  if (S.lmax >= 0) legend(ctx, A.R-8, A.B - items.length*(FS+7) + 4, items);
+  else legend(ctx, A.R-8, A.T+14, items);
+}
+
+function drawW(k){
+  const {ctx,w,h} = setup($('cvW'));
+  const box = S.sys === 'box', lam = lamOf(k), sel = S.lev;
+  const Ek = n => M.Eex[k*NSHOW+n];
+  const xs = M.xd, nx = xs.length, xv = j => box ? xs[j]/PI : xs[j];
+  const sp = (Ek(NSHOW-1) - Ek(0))/(NSHOW-1);
+  const ymin = Math.min(Ek(0) - 0.8*sp, box ? -0.1*sp : Infinity), ymax = Ek(NSHOW-1) + 0.9*sp;
+  const A = axes(ctx, w, h, {xmin:xv(0), xmax:xv(nx-1), ymin, ymax, xlabel: box ? 'x / L' : 'x', ylabel:'energy', l:58});
+  clip(ctx, A);
+  // potential
+  poly(ctx, A, xv, j => M.Vd[j] + lam*M.Wd[j], 0, nx-1, C.pot, 2.2, [], 1);
+  if (box){
+    ctx.save(); ctx.strokeStyle = C.pot; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(A.X(0), A.T); ctx.lineTo(A.X(0), A.Y(M.Wd[0]*lam)); ctx.moveTo(A.X(1), A.T); ctx.lineTo(A.X(1), A.Y(M.Wd[nx-1]*lam)); ctx.stroke(); ctx.restore();
+  }
+  for (let n=0;n<NSHOW;n++) hline(ctx, A, Ek(n), n === sel ? C.ex : C.axis, n === sel ? [] : [4,4]);
+  // wave functions of the chosen level, drawn at its energy
+  const o = (k*NSHOW+sel)*NB, v = M.Vec.subarray(o, o+NB), c1 = M.C1[sel];
+  const ex = new Float64Array(nx), z = new Float64Array(nx), f1 = new Float64Array(nx);
+  let n1 = 1; for (let m=0;m<NB;m++) if (m !== sel) n1 += (lam*c1[m])**2;
+  n1 = 1/Math.sqrt(n1);
+  let amax = 0;
+  for (let j=0;j<nx;j++){
+    let a = 0, b = 0;
+    for (let m=0;m<NB;m++){ const f = M.Fd[m][j]; a += v[m]*f; b += (m === sel ? 1 : lam*c1[m])*f; }
+    ex[j] = a; f1[j] = b*n1; z[j] = M.Fd[sel][j]; amax = Math.max(amax, Math.abs(z[j]));
+  }
+  let gap = Infinity;
+  for (let n=0;n<NSHOW;n++) if (n !== sel) gap = Math.min(gap, Math.abs(Ek(n) - Ek(sel)));
+  if (!isFinite(gap)) gap = sp;
+  const sc = 0.42*Math.max(gap, 0.35*sp)/(amax || 1), E = Ek(sel);
+  poly(ctx, A, xv, j => E + sc*z[j], 0, nx-1, C.muted, 1.6, [5,4], 0.9);
+  poly(ctx, A, xv, j => E + sc*f1[j], 0, nx-1, C.first, 2, [7,4], 1);
+  poly(ctx, A, xv, j => E + sc*ex[j], 0, nx-1, C.ex, 2.4, [], 1);
+  ctx.restore();
+  legend(ctx, A.R-8, A.T+14, [{label:'exact ψ', color:C.ex}, {label:'1st order', color:C.first, dash:[7,4]}, {label:'unperturbed', color:C.muted, dash:[5,4]}, {label:'V(x)', color:C.pot}]);
+}
+
+function drawM(k){
+  const {ctx,w,h} = setup($('cvM'));
+  const lam = lamOf(k), sel = S.lev, off = S.sys === 'box' ? 1 : 0;
+  const o = (k*NSHOW+sel)*NB, c1 = M.C1[sel];
+  const ex = m => M.Vec[o+m], f1 = m => m === sel ? 1 : lam*c1[m];
+  let mx = 0;
+  for (let m=0;m<MB;m++) if (m !== sel) mx = Math.max(mx, Math.abs(ex(m)), Math.abs(f1(m)));
+  mx = Math.max(1.25*mx, 0.02);
+  const A = axes(ctx, w, h, {xmin:off-0.6, xmax:off+MB-0.4, ymin:-mx, ymax:mx, xlabel:'unperturbed state m', ylabel:'coefficient', l:62});
+  clip(ctx, A);
+  hline(ctx, A, 0, C.axis, []);
+  const bw = Math.max(2, 0.36*(A.X(1) - A.X(0)));
+  for (let m=0;m<MB;m++){
+    const x = A.X(m + off), y0 = A.Y(0);
+    ctx.fillStyle = C.ex; ctx.globalAlpha = 0.85;
+    const ye = A.Y(Math.max(-mx, Math.min(mx, ex(m))));
+    ctx.fillRect(x - bw, Math.min(y0, ye), bw, Math.abs(ye - y0));
+    ctx.globalAlpha = 1; ctx.strokeStyle = C.first; ctx.lineWidth = 2;
+    const yf = A.Y(Math.max(-mx, Math.min(mx, f1(m))));
+    ctx.fillStyle = C.first; ctx.globalAlpha = 0.25; ctx.fillRect(x, Math.min(y0, yf), bw, Math.abs(yf - y0)); ctx.globalAlpha = 1;
+    ctx.strokeRect(x, Math.min(y0, yf), bw, Math.abs(yf - y0));
+  }
+  ctx.restore();
+  // the m = n bar is cut: print its value
+  const x = A.X(sel + off) + bw + 5;
+  ctx.save(); ctx.font = FONT; const tw = ctx.measureText('0.000').width; ctx.globalAlpha = 0.85; ctx.fillStyle = C.card;
+  ctx.fillRect(x - 3, A.T + 3, tw + 6, FS + 6); ctx.restore();
+  rich(ctx, ex(sel).toFixed(3), x, A.T + 6 + FS/2 + 1, 'left', FS, C.ex);
+  legend(ctx, A.R-8, A.B - 2*(FS+7) + 2, [{label:'exact', color:C.ex}, {label:'1st order', color:C.first}]);
+}
+
+function drawK(k){
+  const {ctx,w,h} = setup($('cvK'));
+  const lam = lamOf(k), sel = S.lev, K = S.K, e = M.PT[sel];
+  const ps = []; let s = 0, p = 1;
+  for (let j=0;j<=K;j++){ s += e[j]*p; p *= lam; ps.push(s); }
+  const exv = M.Eex[k*NSHOW+sel];
+  let R = 0; for (let j=0;j<=Math.min(2,K);j++) R = Math.max(R, Math.abs(ps[j] - exv));
+  R = Math.max(1.4*R, 1e-3*(Math.abs(M.E0v[1]-M.E0v[0])));
+  const A = axes(ctx, w, h, {xmin:-0.5, xmax:K+0.5, ymin:exv-R, ymax:exv+R, xlabel:'order k', ylabel:[['partial sum of E'],[String(qn(sel)),'sub']], l:76});
+  clip(ctx, A);
+  hline(ctx, A, exv, C.ex, [], 'exact');
+  const cl = v => Math.max(exv-R, Math.min(exv+R, v));
+  poly(ctx, A, j => j, j => cl(ps[j]), 0, K, C.kth, 1.5, [], 0.6);
+  for (let j=0;j<=K;j++){
+    const col = j === 1 ? C.first : j === 2 ? C.sec : C.kth, X = A.X(j), v = ps[j];
+    ctx.fillStyle = col;
+    if (v > exv+R || v < exv-R){
+      const up = v > exv+R, Y = up ? A.T + 2 : A.B - 2;
+      ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X-6, Y + (up ? 10 : -10)); ctx.lineTo(X+6, Y + (up ? 10 : -10)); ctx.fill();
+    } else { ctx.beginPath(); ctx.arc(X, A.Y(v), 4.5, 0, 2*PI); ctx.fill(); }
+  }
+  ctx.restore();
+}
+
+/* ---------- readouts ---------- */
+const f5 = v => (Math.abs(v) < 1e-4 && v !== 0) || Math.abs(v) >= 1e5 ? v.toExponential(2).replace('e-','e−') : v.toFixed(5);
+const err = v => { const a = Math.abs(v); return a < 1e-10 ? '0' : a < 1e-3 ? v.toExponential(1).replace('e-','e−') : v.toFixed(4); };
+function readouts(k){
+  const lam = lamOf(k), n = S.lev, e = M.PT[n], ex = M.Eex[k*NSHOW+n];
+  $('lv').textContent = lam.toFixed(3);
+  $('rl').textContent = lam.toFixed(3);
+  $('rex').textContent = f5(ex);
+  $('r0').textContent = f5(e[0]);
+  $('r1').textContent = f5(lam*e[1]);
+  $('r2').textContent = f5(lam*lam*e[2]);
+  $('re1').textContent = err(partial(n, 1, lam) - ex);
+  $('re2').textContent = err(partial(n, 2, lam) - ex);
+  $('reK').textContent = err(partial(n, S.K, lam) - ex) + '  (K = ' + S.K + ')';
+  const r = ratio(n, lam);
+  $('rr').textContent = r.toFixed(3);
+  const [t, c] = r < 0.1 ? ['perturbation is small: first order is reliable', 'var(--ok)']
+              : r < 0.3 ? ['moderate: second order needed', 'var(--ok)']
+              : r < 1   ? ['ratio approaching 1: low orders become unreliable', 'var(--warn)']
+              :           ['perturbation is not small: the series may fail', 'var(--bad)'];
+  $('badge').textContent = t; $('badge').style.color = c;
+}
+
+/* ---------- controls ---------- */
+function fillSelects(){
+  $('pert').innerHTML = Object.entries(PERTS[S.sys]).map(([k, p]) => `<option value="${k}">${p.name}</option>`).join('');
+  $('lev').innerHTML = Array.from({length:NSHOW}, (_, i) => `<option value="${i}">n = ${qn(i)}${i === 0 ? '  (ground state)' : ''}</option>`).join('');
+}
+function syncLabels(){
+  const p = P(), box = S.sys === 'box';
+  $('lmaxv').textContent = S.lmax.toFixed(p.step < 0.01 ? 3 : 2);
+  $('bumpBox').classList.toggle('hidden', !p.bump);
+  if (p.bump){ $('x0v').textContent = box ? S.x0.toFixed(2) + ' L' : S.x0.toFixed(2); $('sigv').textContent = box ? S.sig.toFixed(2) + ' L' : S.sig.toFixed(2); }
+  $('Kv').textContent = S.K; $('spv').textContent = S.speed + '×';
+  $('levName').textContent = 'n = ' + qn(S.lev);
+}
+function syncInputs(){
+  const p = P();
+  $('sys').value = S.sys; $('pert').value = S.pert;
+  Object.assign($('lmax'), {min:p.min, max:p.max, step:p.step}); $('lmax').value = S.lmax;
+  if (p.bump){ Object.assign($('x0'), p.x0); $('x0').value = S.x0; Object.assign($('sig'), p.sig); $('sig').value = S.sig; }
+  $('lev').value = S.lev; $('K').value = S.K; $('speed').value = S.speed;
+  for (const id of ['show1','show2','showK','allPT','zoom']) $(id).checked = S[id];
+  syncLabels();
+}
+function setPert(key){
+  S.pert = key; const p = P();
+  S.lmax = p.def;
+  if (p.bump){ S.x0 = p.x0.def; S.sig = p.sig.def; }
+}
+function rebuild(){ build(); }
+let rbTimer = null;
+const rebuildSoon = () => { clearTimeout(rbTimer); rbTimer = setTimeout(rebuild, 120); };
+
+$('sys').onchange = e => { S.sys = e.target.value; fillSelects(); setPert(Object.keys(PERTS[S.sys])[0]); syncInputs(); rebuild(); S.k = 0; setPlaying(true); };
+$('pert').onchange = e => { setPert(e.target.value); syncInputs(); rebuild(); S.k = 0; setPlaying(true); };
+$('lmax').oninput = e => { S.lmax = +e.target.value; syncLabels(); rebuildSoon(); };
+$('x0').oninput = e => { S.x0 = +e.target.value; syncLabels(); rebuildSoon(); };
+$('sig').oninput = e => { S.sig = +e.target.value; syncLabels(); rebuildSoon(); };
+$('lev').onchange = e => { S.lev = +e.target.value; syncLabels(); };
+$('K').oninput = e => { S.K = +e.target.value; syncLabels(); buildCurves(); };
+for (const id of ['show1','show2','showK','allPT','zoom']) $(id).onchange = e => S[id] = e.target.checked;
+initPlayback(S, NT, PERIOD);
+
+const PRESETS = {
+  hoLin:     {sys:'ho',  pert:'lin',   lmax:1.5, lev:0, K:6, zoom:false},
+  hoQuad:    {sys:'ho',  pert:'quad',  lmax:1.5, lev:0, K:12, zoom:false},
+  anh:       {sys:'ho',  pert:'quart', lmax:0.1, lev:0, K:4, zoom:true},
+  anhStrong: {sys:'ho',  pert:'quart', lmax:0.3, lev:0, K:16, zoom:true},
+  stark:     {sys:'box', pert:'lin',   lmax:3,   lev:0, K:6, zoom:false},
+  step:      {sys:'box', pert:'step',  lmax:5,   lev:0, K:6, zoom:false},
+  barrier:   {sys:'box', pert:'bump',  lmax:30,  x0:0.5, sig:0.08, lev:0, K:6, zoom:false},
+};
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+  const p = PRESETS[b.dataset.p];
+  S.sys = p.sys; fillSelects(); setPert(p.pert); Object.assign(S, p);
+  syncInputs(); rebuild(); S.k = 0; setPlaying(true);
+});
+
+/* ---------- start ---------- */
+initThemeNotes();
+fillSelects(); syncInputs();
+build();
+startLoop([['cvE',drawE],['cvW',drawW],['cvM',drawM],['cvK',drawK]], readouts);
+</script>
+</body>
+</html>

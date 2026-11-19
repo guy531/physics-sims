@@ -27,6 +27,11 @@ const CATALOG = {
       "number": "20955",
       "sims": [
         {
+          "file": "ti-perturbation.html",
+          "title": "Time-Independent Perturbation Theory",
+          "summary": "Energy levels of an oscillator or an infinite well as a perturbation grows: exact vs. first, second and higher orders, wave functions, state mixing, and when the series converges or diverges."
+        },
+        {
           "file": "td-perturbation-two-level.html",
           "title": "Time-Dependent Perturbation Theory",
           "summary": "A driven few-level system (2–6 levels): exact solution vs. first-order perturbation theory, Rabi oscillations, sudden vs. adiabatic switching, multi-photon transitions."
